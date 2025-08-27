@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Solana Devnet Control Panel — Flash Executor (v3 diagnostics)</title>
+  <style>
+    :root{--bg:#0f1221;--card:#171a2e;--ink:#e8eaf6;--muted:#9aa3b2;--acc:#7aa2ff;--bad:#ff5d5d;--good:#36d399}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    h1{font-size:24px;margin:0 0 10px}
+    h2{font-size:18px;margin:24px 0 10px;color:var(--acc)}
+    p, label{color:var(--muted)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:var(--card);border:1px solid #242845;border-radius:14px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.2)}
+    input, select, textarea, button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b2f4a;background:#0d1022;color:var(--ink);outline:none}
+    button{cursor:pointer;background:#1b2040;border-color:#2e3563}
+    button:hover{background:#222750}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .small{font-size:12px}
+    .hint{font-size:12px;color:#96a0b8}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0b0f24;border:1px solid #22284d;color:#c9d2f0;font-size:12px}
+    .ok{color:var(--good)} .bad{color:var(--bad)}
+    .tx{border-left:3px solid #2f3563;padding-left:10px;margin:8px 0}
+    .hr{height:1px;background:#262a45;margin:14px 0}
+    .banner{margin-bottom:16px;padding:12px 14px;border-radius:12px;border:1px solid #3a3f6c;background:#121633}
+    .k{background:#0e1230;border:1px solid #24306a;border-radius:6px;padding:1px 6px;font-size:12px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Flash Executor — Devnet Control Panel <span class="pill mono">LIVE • no mocks</span></h1>
+
+  <div id="diag" class="banner">
+    <div class="small">
+      <b>Diagnostics</b> — JS loaded: <span id="jsLoaded" class="mono bad">no</span> •
+      Page origin: <span id="origin" class="mono"></span> •
+      Phantom detected: <span id="detected" class="mono bad">no</span> •
+      Provider: <span id="providerName" class="mono">—</span> •
+      isPhantom: <span id="isPhantom" class="mono">—</span>
+      <div class="small mt8">
+        If Phantom = <span class="mono bad">no</span>: On Chrome, open <span class="k">chrome://extensions → Phantom → Details</span> and set<br/>
+        <span class="k">Site access → On all sites</span> and (if opening from file) <span class="k">Allow access to file URLs</span>. Disable other Solana wallets, then reload.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>RPC Cluster</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="rpc">
+            <option value="https://api.devnet.solana.com" selected>https://api.devnet.solana.com</option>
+          </select>
+          <button id="ping">Ping</button>
+          <span class="small">Status: <span id="rpcStatus" class="mono">—</span></span>
+        </div>
+      </div>
+      <div>
+        <label>Program ID</label>
+        <input id="programId" class="mono" value="9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn"/>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="row">
+      <div>
+        <button id="connect">Connect Phantom</button>
+        <div class="small">Wallet: <span id="wallet" class="mono">—</span></div>
+        <div id="connectErr" class="small bad"></div>
+      </div>
+      <div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button id="airdrop">Airdrop 1 SOL</button>
+          <button id="balance">Refresh Balance</button>
+          <span class="small">Balance: <span id="bal" class="mono">—</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>TX Log</h2>
+  <div class="card" id="log"></div>
+
+</div>
+
+<script type="module">
+import * as web3 from 'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/+esm';
+
+const $ = (id)=>document.getElementById(id);
+const logDiv = $('log');
+const log = (m,ok=true)=>{ const el=document.createElement('div'); el.className='tx'; el.innerHTML= ok? m : '<span class="bad">'+m+'</span>'; logDiv.prepend(el); };
+
+$('origin').textContent = location.origin || location.protocol;
+$('jsLoaded').textContent = 'yes'; $('jsLoaded').className = 'mono ok';
+
+function detect(){
+  const p = (window.phantom && window.phantom.solana) ? window.phantom.solana :
+            (window.solana && window.solana.isPhantom ? window.solana : null);
+  $('detected').textContent = !!p ? 'yes' : 'no';
+  $('detected').className = 'mono ' + (p ? 'ok':'bad');
+  $('providerName').textContent = p ? (p.isPhantom ? 'Phantom' : 'Unknown') : '—';
+  $('isPhantom').textContent = p ? String(!!p.isPhantom) : '—';
+  return p;
+}
+window.addEventListener('load', detect);
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) detect(); });
+setTimeout(detect, 1000);
+
+let conn = new web3.Connection($('rpc').value, {commitment:'confirmed'});
+$('rpc').addEventListener('change', ()=>{ conn = new web3.Connection($('rpc').value, {commitment:'confirmed'}); });
+
+$('ping').onclick = async ()=>{
+  try{ const v = await conn.getVersion(); $('rpcStatus').textContent = 'ok'; log('RPC ok: '+JSON.stringify(v)); }
+  catch(e){ $('rpcStatus').textContent = 'error'; log('RPC error: '+e.message, false); }
+};
+
+let wallet = null, walletPk = null;
+$('connect').onclick = async ()=>{
+  try{
+    const p = detect();
+    if(!p){ $('connectErr').textContent = 'Provider not found. See Diagnostics banner.'; throw new Error('provider missing'); }
+    const res = await p.connect({ onlyIfTrusted:false });
+    wallet = p; walletPk = res.publicKey.toString();
+    $('wallet').textContent = walletPk;
+    $('connectErr').textContent = '';
+    log('Connected '+walletPk);
+  }catch(e){
+    $('connectErr').textContent = e.message || String(e);
+    log('Connect failed: '+(e.message || e), false);
+  }
+};
+
+$('airdrop').onclick = async ()=>{
+  try{
+    if(!walletPk) throw new Error('Connect wallet first');
+    const sig = await conn.requestAirdrop(new web3.PublicKey(walletPk), 1e9);
+    await conn.confirmTransaction(sig, 'confirmed');
+    log('Airdrop: '+sig);
+  }catch(e){ log('Airdrop failed: '+e.message, false); }
+};
+
+$('balance').onclick = async ()=>{
+  try{
+    if(!walletPk) throw new Error('Connect wallet first');
+    const lam = await conn.getBalance(new web3.PublicKey(walletPk));
+    $('bal').textContent = (lam/1e9).toFixed(4)+' SOL';
+  }catch(e){ log('Balance failed: '+e.message, false); }
+};
+
+</script>
+</body>
+</html>

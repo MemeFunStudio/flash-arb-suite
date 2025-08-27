@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Flash Executor — Clean Devnet Panel (no snippets)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:#0f1220;color:#e7e7ef;margin:0}
+    .wrap{max-width:920px;margin:32px auto;padding:0 16px}
+    h1{font-weight:700;font-size:22px;margin:0 0 8px}
+    .sub{opacity:.7;margin:0 0 24px}
+    .card{background:#14172a;border:1px solid #222642;border-radius:12px;padding:16px;margin:16px 0}
+    label{display:block;font-size:13px;opacity:.9;margin:8px 0 6px}
+    input,select,button{font:inherit}
+    input,select{width:100%;box-sizing:border-box;background:#0c0f1a;color:#e7e7ef;border:1px solid #2a2e45;border-radius:10px;padding:10px 12px;outline:none}
+    input::placeholder{color:#6c7393}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1.2fr 1fr .8fr;gap:12px}
+    button{background:#1b2559;color:#e7e7ef;border:1px solid #3d4692;border-radius:10px;padding:10px 14px;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .btn-ghost{background:#15182b;border-color:#2a2e45}
+    .ok{color:#7de387}
+    .bad{color:#ff7b7b}
+    .mono{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace}
+    #log{white-space:pre-wrap;background:#0c0f1a;border:1px solid #2a2e45;border-radius:10px;padding:12px;font-size:13px}
+    a{color:#9bb8ff;text-decoration:none}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Flash Executor — Clean Devnet Panel</h1>
+  <p class="sub">Local only. No stubs, no simulation. Every button sends a real Devnet tx and prints a Solana Explorer link.</p>
+
+  <div class="card">
+    <div class="row3">
+      <div>
+        <label>RPC URL</label>
+        <input id="rpc" value="https://api.devnet.solana.com" class="mono" />
+      </div>
+      <div>
+        <label>Status</label>
+        <input id="status" class="mono" value="—" readonly />
+      </div>
+      <div style="align-self:end;display:flex;gap:8px;flex-wrap:wrap">
+        <button id="btnPing" class="btn-ghost">Ping</button>
+        <button id="btnAirdrop" class="btn-ghost">Airdrop 1 SOL</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label>Wallet</label>
+        <input id="wallet" class="mono" value="—" readonly />
+      </div>
+      <div style="align-self:end;display:flex;gap:8px">
+        <button id="btnConnect">Connect Phantom</button>
+        <button id="btnBalance" class="btn-ghost">Refresh Balance</button>
+      </div>
+    <script src="./vendor/web3.iife.js"></script>
+
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px">Initialize Global</h3>
+    <div class="row3">
+      <div>
+        <label>Program ID (base58)</label>
+        <input id="programId" class="mono" placeholder="Paste your deployed program id" />
+      </div>
+      <div>
+        <label>Instruction name (Anchor)</label>
+        <input id="ixName" class="mono" value="initialize_global" />
+      </div>
+      <div style="align-self:end">
+        <button id="btnInit">Initialize Global</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <label>Global PDA (leave blank to derive from seed ‘global’)</label>
+        <input id="globalPda" class="mono" placeholder="Optional override (base58)" />
+      </div>
+      <div>
+        <label>Derived (preview)</label>
+        <input id="derivedPda" class="mono" value="—" readonly />
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>TX Log</label>
+    <div id="log" class="mono">—</div>
+  </div>
+</div>
+
+<script src="./web3.iife.js"></script>
+<script>
+(async () => {
+  const web3 = window.web3; // local vendor
+  const $ = sel => document.querySelector(sel);
+  const log = (s, cls) => {
+    const el = $("#log");
+    el.innerHTML = (el.innerHTML === "—" ? "" : el.innerHTML + "\n") +
+      (cls ? `<span class="${cls}">${s}</span>` : s);
+  };
+  const set = (id, v) => ($(id).value = v);
+
+  const isBase58 = str => /^[1-9A-HJ-NP-Za-km-z]+$/.test(str || "");
+  const pk = s => new web3.PublicKey(s);
+
+  const connection = () => new web3.Connection($("#rpc").value.trim(), "confirmed");
+
+  const explorerTx = (sig) => {
+    // We assume devnet here; if you paste a devnet QuickNode URL it’s still devnet.
+    return `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+  };
+
+  const calcAnchorDisc = async (name) => {
+    const enc = new TextEncoder();
+    const bytes = enc.encode(`global:${name}`);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return new Uint8Array(digest).slice(0, 8);
+  };
+
+  // Derive PDA when program id changes (seed = 'global')
+  const derivePdaPreview = () => {
+    const pid = $("#programId").value.trim();
+    const override = $("#globalPda").value.trim();
+    if (override) { set("#derivedPda", override); return; }
+    try {
+      if (!isBase58(pid)) { set("#derivedPda", "—"); return; }
+      const [pda] = web3.PublicKey.findProgramAddressSync([Buffer.from("global")], pk(pid));
+      set("#derivedPda", pda.toBase58());
+    } catch { set("#derivedPda", "—"); }
+  };
+
+  $("#programId").addEventListener("input", derivePdaPreview);
+  $("#globalPda").addEventListener("input", derivePdaPreview);
+
+  // Buttons
+  $("#btnPing").onclick = async () => {
+    try {
+      const c = connection();
+      const ver = await c.getVersion();
+      $("#status").value = `ok • core ${ver["solana-core"]}`;
+      log(`RPC ok ${JSON.stringify(ver)}`, "ok");
+    } catch (e) {
+      $("#status").value = "error";
+      log(`RPC error: ${e.message}`, "bad");
+    }
+  };
+
+  $("#btnConnect").onclick = async () => {
+    if (!window.solana) { alert("Phantom not found"); return; }
+    try {
+      const res = await window.solana.connect();
+      set("#wallet", res.publicKey.toBase58());
+      const bal = await connection().getBalance(res.publicKey);
+      $("#status").value = "wallet connected";
+      log(`Connected ${res.publicKey.toBase58()}`);
+      log(`Balance: ${(bal/1e9).toFixed(4)} SOL`);
+    } catch (e) {
+      log(`Connect error: ${e.message}`, "bad");
+    }
+  };
+
+  $("#btnBalance").onclick = async () => {
+    try {
+      const w = $("#wallet").value.trim();
+      if (!isBase58(w)) return;
+      const bal = await connection().getBalance(pk(w));
+      log(`Balance: ${(bal/1e9).toFixed(4)} SOL`);
+    } catch (e) { log(`Balance error: ${e.message}`, "bad"); }
+  };
+
+  $("#btnAirdrop").onclick = async () => {
+    try {
+      const w = $("#wallet").value.trim();
+      if (!isBase58(w)) { alert("Connect wallet first"); return; }
+      const c = connection();
+      const sig = await c.requestAirdrop(pk(w), 1e9);
+      await c.confirmTransaction(sig, "confirmed");
+      log(`airdrop: ${explorerTx(sig)}`);
+      const bal = await c.getBalance(pk(w));
+      log(`Balance: ${(bal/1e9).toFixed(4)} SOL`);
+    } catch (e) {
+      log(`airdrop failed: ${e.message}`, "bad");
+    }
+  };
+
+  $("#btnInit").onclick = async () => {
+    try {
+      // Validate inputs
+      const pidStr = $("#programId").value.trim();
+      if (!isBase58(pidStr)) { alert("Program ID is not base58"); return; }
+      const programId = pk(pidStr);
+
+      const ownerStr = $("#wallet").value.trim();
+      if (!isBase58(ownerStr)) { alert("Connect Phantom first"); return; }
+      const payer = pk(ownerStr);
+
+      const override = $("#globalPda").value.trim();
+      const globalPda = override ? pk(override)
+        : web3.PublicKey.findProgramAddressSync([Buffer.from("global")], programId)[0];
+
+      set("#derivedPda", globalPda.toBase58());
+
+      // Build Anchor instruction data: 8-byte discriminator of 'global:<ixName>'
+      const ixName = $("#ixName").value.trim() || "initialize_global";
+      const disc = await calcAnchorDisc(ixName); // no args => data = discriminator only
+      const data = disc; // Uint8Array
+
+      const keys = [
+        { pubkey: globalPda, isSigner: false, isWritable: true },
+        { pubkey: payer,     isSigner: true,  isWritable: true },
+        { pubkey: web3.SystemProgram.programId, isSigner: false, isWritable: false },
+      ];
+
+      const ix = new web3.TransactionInstruction({
+        programId,
+        keys,
+        data,
+      });
+
+      const tx = new web3.Transaction().add(ix);
+      tx.feePayer = payer;
+
+      const c = connection();
+      const { blockhash, lastValidBlockHeight } = await c.getLatestBlockhash("finalized");
+      tx.recentBlockhash = blockhash;
+
+      // Let Phantom sign & send
+      const signed = await window.solana.signTransaction(tx);
+      const sig = await c.sendRawTransaction(signed.serialize(), { skipPreflight: false });
+      await c.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
+
+      log(`Initialize Global: ${explorerTx(sig)}`, "ok");
+    } catch (e) {
+      log(`initialize failed: ${e.message}`, "bad");
+      console.error(e);
+    }
+  };
+
+  // Initial preview (empty)
+  derivePdaPreview();
+})();
+</script>
+</body>
+</html>

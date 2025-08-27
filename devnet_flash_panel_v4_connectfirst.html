@@ -1,0 +1,21 @@
+<!doctype html><html lang="en"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flash Executor — Devnet (v4 connect-first)</title>
+<style>body{background:#0f1221;color:#e8eaf6;font:14px ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;margin:0;padding:24px} .card{background:#171a2e;border:1px solid #242845;border-radius:14px;padding:16px;max-width:980px;margin:auto} .mono{font-family:ui-monospace,Menlo,Consolas,monospace} .ok{color:#36d399}.bad{color:#ff5d5d}button{cursor:pointer;padding:10px 12px;border-radius:10px;border:1px solid #2b2f4a;background:#1b2040;color:#e8eaf6}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.tx{border-left:3px solid #2f3563;padding-left:10px;margin:8px 0}</style>
+<div class="card">
+<h2>⚡ Flash Executor — Devnet (v4 connect-first)</h2>
+<div class="mono" id="banner">Origin: <span id="orig"></span> • Phantom detected: <span id="det" class="bad">no</span> • Connected: <span id="con">no</span> • web3: <span id="w3">no</span></div>
+<div class="row" style="margin-top:10px"><button id="connect">Connect Phantom</button><button id="load">Load web3.js</button><button id="air">Airdrop 1 SOL</button><button id="bal">Balance</button></div>
+<div style="margin-top:8px">Wallet: <span id="pk" class="mono">—</span></div><div id="log"></div></div>
+<script>
+const $=id=>document.getElementById(id);const log=(m,ok=true)=>{const d=document.createElement('div');d.className='tx';d.innerHTML=ok?m:'<span class="bad">'+m+'</span>';$('log').prepend(d);};
+$('orig').textContent=location.origin||location.protocol;
+function prov(){return(window.phantom&&window.phantom.solana)?window.phantom.solana:((window.solana&&window.solana.isPhantom)?window.solana:null);}
+function refresh(){const p=prov();$('det').textContent=p?'yes':'no';$('det').className=p?'ok mono':'bad mono';$('w3').textContent=window.solanaWeb3?'yes':'no';}
+refresh();window.addEventListener('focus',refresh);
+async function ensureW3(){if(window.solanaWeb3)return true;const srcs=["https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js","https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/lib/index.iife.min.js"];for(const s of srcs){try{await new Promise((res,rej)=>{const t=document.createElement('script');t.src=s;t.onload=res;t.onerror=rej;document.head.appendChild(t);});$('w3').textContent='yes';return true;}catch(e){}}log('failed to load web3.js',false);return false;}
+let pub=null;
+$('connect').onclick=async()=>{try{const p=prov();if(!p)throw new Error('Phantom provider not found');const r=await p.connect({onlyIfTrusted:false});pub=r.publicKey.toString();$('pk').textContent=pub;$('con').textContent='yes';refresh();log('Connected '+pub);}catch(e){log('Connect failed: '+(e.message||e),false);}};
+$('load').onclick=ensureW3;
+$('air').onclick=async()=>{try{if(!pub)throw new Error('Connect first');await ensureW3();const c=new solanaWeb3.Connection("https://api.devnet.solana.com",{commitment:'confirmed'});const sig=await c.requestAirdrop(new solanaWeb3.PublicKey(pub),1e9);await c.confirmTransaction(sig,'confirmed');log('Airdrop: '+sig);}catch(e){log('Airdrop failed: '+(e.message||e),false);}};
+$('bal').onclick=async()=>{try{if(!pub)throw new Error('Connect first');await ensureW3();const c=new solanaWeb3.Connection("https://api.devnet.solana.com",{commitment:'confirmed'});const lam=await c.getBalance(new solanaWeb3.PublicKey(pub));log('Balance: '+(lam/1e9).toFixed(4)+' SOL');}catch(e){log('Balance failed: '+(e.message||e),false);}};
+</script></html>

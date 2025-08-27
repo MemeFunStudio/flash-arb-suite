@@ -1,0 +1,36 @@
+{
+  "name": "flash-arb-suite",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "ISC",
+  "scripts": {
+    "build": "anchor build",
+    "build:docker": "ANCHOR_USE_DOCKER=true ANCHOR_DOCKER_IMAGE=solanafoundation/anchor:v0.31.1 anchor build -v",
+    "deploy:devnet": "ANCHOR_USE_DOCKER=true anchor deploy --provider.cluster devnet -v",
+    "init:global": "tsx scripts/init_global.ts",
+    "whitelist": "tsx scripts/whitelist.ts",
+    "validate:registry": "tsx scripts/validate_registry.ts"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@solana/spl-token": "^0.4.13",
+    "@solana/web3.js": "^1.98.4",
+    "bn.js": "^5.2.2",
+    "bs58": "^6.0.0",
+    "tweetnacl": "^1.0.3",
+    "yargs": "^18.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.20.0",
+    "typescript": "^5.5.4"
+  },
+  "description": "- Anchor 0.31.x, Solana 1.18.x, Rust 1.82.0 (pinned) - Owner-only governance + executors allowlist (for route execution & sweeping) - Per-token `TokenPool` (supports multiple pools per same mint via `pool_id`) - Guarded multi-step CPI route (program whitelist, per-trade cap, max hops, profit invariant) - Program-owned vault authority (PDA) with settlement & execution ATAs - Scripts to whitelist verified DEX program IDs (devnet/mainnet sets)",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "keywords": [],
+  "author": ""
+}

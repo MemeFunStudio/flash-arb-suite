@@ -1,0 +1,220 @@
+
+const FL=(process.env.FL_PROVIDER||"NONE").trim().toUpperCase();
+if(FL==="PORT"){
+  const { buildPortFlashLoanIxs } = require("./providers/port.cjs");
+  const borrower = owner.publicKey;
+  const amount = BigInt(process.env.FL_NOTIONAL_USDC||"10000000");
+  const built = buildPortFlashLoanIxs(process.env, amount, borrower, program.programId, remainingAccounts);
+  ixs.unshift(...built.preIxs);
+  ixs.push(built.mainIx, ...built.postIxs);
+} else if(FL==="NONE"){
+} else {
+  console.warn("["+FL+"] unknown provider; running as NONE.");
+}
+#!/usr/bin/env node
+function __toPk(x){ const {PublicKey}=require("@solana/web3.js"); const v=(x==null?"":String(x)).trim(); if(!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(v)){ throw new Error("Bad pubkey: "+JSON.stringify(x)); } return new PublicKey(v); }
+/**
+ * exec-route-provider.cjs
+ * - Builds the ExecuteRoute ix from your IDL
+ * - Guarantees the required signer account (caller/authority/owner) is your payer
+ * - Optionally prepends provider-specific flash-loan pre/post ixs (stubbed for now)
+ *
+ * ENV you already use:
+ *   RPC, PROGRAM, GLOBAL, POOL, VAPDA, VATA, USDC_MINT, RAY_PROG, RAY_POOL, etc.
+ *   EXTRA_* entries are auto-included (from your ~/.flash-arb/devnet.env sweep)
+ * Optional provider switch:
+ *   FL_PROVIDER = NONE | MANGO | PORT   (only NONE stubbed; MANGO/PORT kept for later)
+ */
+
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const {
+  Connection,
+  PublicKey,
+  Transaction,
+  TransactionInstruction,
+  Keypair,
+} = require("@solana/web3.js");
+
+// ---------- config / helpers ----------
+const RPC = process.env.RPC || "https://api.devnet.solana.com";
+const PROGRAM = __toPk(reqEnv("PROGRAM"));
+const IDL_PATH = path.join(__dirname, "idl", `${PROGRAM.toBase58()}.json`);
+const SIGNER_ALIASES = new Set(["caller", "authority", "owner", "signer", "user"]);
+
+function reqEnv(k) {
+  const v = (process.env[k] || "").trim();
+  if (!v) throw new Error(`Missing env var ${k}`);
+  return v;
+}
+function optEnv(k) {
+  const v = (process.env[k] || "").trim();
+  return v || null;
+}
+function loadPayer() {
+  const kpFile = path.resolve(process.env.SIGNER || "./phantom-owner.json");
+  const raw = fs.readFileSync(kpFile, "utf8");
+  let parsed;
+  try { parsed = JSON.parse(raw); } catch { parsed = null; }
+  if (Array.isArray(parsed)) {
+    return Keypair.fromSecretKey(Uint8Array.from(parsed));
+  }
+  if (parsed && parsed.secretKey) {
+    const buf = Buffer.from(parsed.secretKey, "base64");
+    return Keypair.fromSecretKey(Uint8Array.from(buf));
+  }
+  if (parsed && parsed._keypair && (parsed._keypair.secretKey?.data || Array.isArray(parsed._keypair.secretKey))) {
+    const sk = Uint8Array.from(parsed._keypair.secretKey.data || parsed._keypair.secretKey);
+    return Keypair.fromSecretKey(sk);
+  }
+  throw new Error(`Unsupported keypair format in ${kpFile}`);
+}
+function flattenIdlAccounts(accs, out = []) {
+  for (const a of accs || []) {
+    out.push(a);
+    if (a.accounts) flattenIdlAccounts(a.accounts, out);
+  }
+  return out;
+}
+
+// ---------- load payer & IDL ----------
+const payer = loadPayer();
+const idl = JSON.parse(fs.readFileSync(IDL_PATH, "utf8"));
+const ixDef =
+  idl.instructions.find(i => i.name === "execute_route") ||
+  idl.instructions.find(i => i.name === "executeRoute") ||
+  idl.instructions.find(i => i.name === "execute");
+if (!ixDef) throw new Error("Could not find execute route instruction in IDL");
+
+// ---------- build base metas (with signer safety) ----------
+const flat = flattenIdlAccounts(ixDef.accounts);
+
+/**
+ * For each IDL account:
+ *  - If it's a signer and its name matches caller/authority/owner → default to payer
+ *  - Else require ENV named as UPPERCASE of the IDL account (GLOBAL, POOL, VAPDA, ...)
+ *  - Enforce: if IDL says isSigner, pubkey MUST equal payer.publicKey
+ */
+const base = flat.map(acc => {
+  const nameU = acc.name.toUpperCase();
+  const nameL = acc.name.toLowerCase();
+
+  let pubkeyStr = optEnv(nameU);
+
+  if (acc.isSigner && SIGNER_ALIASES.has(nameL)) {
+    if (!pubkeyStr) pubkeyStr = payer.publicKey.toBase58();
+  }
+  if (!pubkeyStr) {
+    // require explicit env for non-signers
+    pubkeyStr = reqEnv(nameU);
+  }
+
+  const pk = __toPk(pubkeyStr);
+
+  if (acc.isSigner && !pk.equals(payer.publicKey)) {
+    throw new Error(
+      `IDL account "${acc.name}" must sign, but pubkey (${pk.toBase58()}) != payer (${payer.publicKey.toBase58()}). ` +
+      `Set ${nameU} to your payer pubkey or unset it to use the default.`
+    );
+  }
+
+  return {
+    pubkey: pk,
+    isSigner: !!acc.isSigner,
+    isWritable: !!acc.isMut,
+  };
+});
+
+// ---------- gather remaining accounts (EXTRA_* + common envs) ----------
+function uniqPubkeys(pks) {
+  const seen = new Set();
+  const out = [];
+  for (const pk of pks) {
+    const b = pk.toBase58();
+    if (!seen.has(b)) { seen.add(b); out.push(pk); }
+  }
+  return out;
+}
+
+const baseSet = new Set(base.map(m => m.pubkey.toBase58()));
+
+const namedExtras = [
+  "ORACLE","OBS","BITMAP","VAULT_A","VAULT_B","MINT_B","RAY_PROG","RAY_POOL",
+].map(k => optEnv(k)).filter(Boolean).map(s => __toPk(s));
+
+const sweptExtras = Object.keys(process.env)
+  .filter(k => /^EXTRA_\d+$/i.test(k) && process.env[k])
+  .sort((a,b) => {
+    const na = parseInt(a.split("_")[1],10);
+    const nb = parseInt(b.split("_")[1],10);
+    return na - nb;
+  })
+  .map(k => __toPk(process.env[k]));
+
+const extras = uniqPubkeys([...namedExtras, ...sweptExtras])
+  // keep base too; program expects them in remaining_accounts
+  .map(pk => ({ pubkey: pk, isSigner: false, isWritable: false }));
+
+// include base metas at the front of remaining (non-signer)
+const baseForRemaining = base.map(m => ({
+  pubkey: m.pubkey,
+  isSigner: false,
+  isWritable: !!m.isWritable,
+}));
+
+// keep well under 220 metas
+const remaining = [...baseForRemaining, ...extras]
+  .reduce((acc, m) => { if (!acc.some(x => x.pubkey.equals(m.pubkey))) acc.push(m); return acc; }, [])
+  .slice(0, 200);
+
+// ---------- provider pre/post stubs ----------
+const provider = (process.env.FL_PROVIDER || "NONE").toUpperCase();
+const preInstrs = [];
+const postInstrs = [];
+
+if (provider === "NONE") {
+  // no-op
+} else if (provider === "MANGO") {
+  // TODO: insert Mango flash-loan begin/end ixs here (PDA/IX wiring)
+  console.warn("[MANGO] provider stubs not yet wired; running without pre/post ixs.");
+} else if (provider === "PORT") {
+  // TODO: insert Port flash-loan begin/end ixs here
+
+  console.warn(`}
+
+// ---------- build program instruction ----------
+const disc = crypto.createHash("sha256").update("global:"+ixDef.name).digest().slice(0,8);
+// principal (u64) = 0, route_len (u32) = 0  → pure dry-run
+const data = Buffer.concat([disc, Buffer.alloc(8,0), Buffer.alloc(4,0)]);
+
+const ordered = remaining; // already capped
+const execIx = new TransactionInstruction({
+  programId: PROGRAM,
+  keys: [...base, ...ordered],
+  data,
+});
+
+// ---------- compose & send ----------
+(async () => {
+  const cn = new Connection(RPC, "confirmed");
+
+  const tx = new Transaction();
+  for (const ix of preInstrs) tx.add(ix);
+  tx.add(execIx);
+  for (const ix of postInstrs) tx.add(ix);
+
+  tx.feePayer = payer.publicKey;
+  const { blockhash } = await cn.getLatestBlockhash("confirmed");
+  tx.recentBlockhash = blockhash;
+  tx.sign(payer);
+
+  const sig = await cn.sendRawTransaction(tx.serialize(), { skipPreflight: true });
+  console.log("SENT:", sig);
+  console.log("Explorer: https://explorer.solana.com/tx/"+sig+"?cluster=devnet");
+})().catch(e => {
+  console.error("send error:", e.message);
+  if (e.transactionLogs) console.error(e.transactionLogs.join("\n"));
+  process.exit(1);
+});
+

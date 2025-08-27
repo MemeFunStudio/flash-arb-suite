@@ -1,0 +1,259 @@
+<!doctype html><html lang="en"><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Flash Executor — Devnet (NO-MODULE)</title>
+<style>
+:root{--bg:#0f1221;--card:#171a2e;--ink:#e8eaf6}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.card{background:var(--card);border:1px solid #242845;border-radius:14px;padding:16px;margin:12px 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+input,select,textarea,button{width:100%;padding:10px;border-radius:10px;border:1px solid #2b2f4a;background:#0d1022;color:var(--ink)}
+button{cursor:pointer;background:#1b2040}
+textarea{height:160px}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.small{font-size:12px;color:#96a0b8}
+.tx{border-left:3px solid #2f3563;padding-left:10px;margin:8px 0}
+a{color:#9ecbff}.bad{color:#ff6b6b}
+</style>
+
+<div class="wrap">
+  <h1>⚡ Flash Executor — Devnet
+    <span class="mono" style="padding:3px 8px;border:1px solid #22284d;border-radius:999px;background:#0b0f24">
+      NO-MODULE • local web3.iife.js • LIVE • no mocks
+    </span>
+  </h1>
+  <p class="small">All actions submit real transactions to Devnet. Each tx is confirmed and printed with a Solana Explorer link (no stubs, no simulation).</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>RPC Cluster</label>
+        <div style="display:flex;gap:8px">
+          <select id="rpc"><option>https://api.devnet.solana.com</option></select>
+          <button id="ping">Ping</button>
+        </div>
+        <div class="small">Status: <span id="rpcStatus" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Program ID</label>
+        <input id="programId" class="mono" value="9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn"/>
+        <div class="small">From contract: <span class="mono">declare_id!(…)</span></div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <div>
+        <button id="connect">Connect Phantom</button>
+        <div class="small">Wallet: <span id="wallet" class="mono">—</span></div>
+      </div>
+      <div>
+        <div style="display:flex;gap:8px">
+          <button id="airdrop">Airdrop 1 SOL</button>
+          <button id="balance">Refresh Balance</button>
+        </div>
+        <div class="small">Balance: <span id="bal" class="mono">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Derivations & Vault</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Mint (token to arbitrate)</label>
+        <input id="mint" class="mono" placeholder="Devnet token mint"/>
+        <div class="small">Token Program: <span id="whichTokenProg" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Pool Params</label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:10px">
+          <input id="minBps" type="number" value="30"/><button id="derivePdas">Derive PDAs</button>
+        </div>
+        <div class="small">Pool PDA: <span id="poolPda" class="mono">—</span></div>
+        <div class="small">Vault Auth PDA: <span id="vaultAuth" class="mono">—</span></div>
+        <div class="small">Vault ATA: <span id="vaultAta" class="mono">—</span></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button id="createVaultAta">Create Vault ATA</button>
+      <button id="vaultBal">Vault Balance</button>
+      <span class="small">Amount: <span id="vaultAmount" class="mono">—</span></span>
+    </div>
+  </div>
+
+  <h2>Execute Route</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Principal (base units, u64)</label>
+        <input id="principal" class="mono" value="1000000"/>
+        <div class="small">Compute: units <input id="cuLimit" class="mono" value="1200000" style="width:120px"> • microLamports <input id="cuPrice" class="mono" value="0" style="width:120px"></div>
+      </div>
+      <div>
+        <label>Route JSON</label>
+        <textarea id="route" class="mono" placeholder='[{"programId":"DEX_PROGRAM","metas":[{"pubkey":"...", "isSigner":false, "isWritable":true}], "data":"hex-cpi-data"}]'></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px"><button id="execute">Execute Route</button></div>
+  </div>
+
+  <h2>DEX Program Verifier (optional)</h2>
+  <div class="card">
+    <label>Program IDs (one per line)</label>
+    <textarea id="dexList" class="mono" placeholder="whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc&#10;675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px"><button id="verifyDex">Verify on-chain</button></div>
+    <div class="small">Results: <span id="dexResults" class="mono">—</span></div>
+  </div>
+
+  <h2>TX Log</h2><div class="card" id="log"></div>
+</div>
+
+<script src="./vendor/web3.iife.js?v=1"></script>
+<script>
+(function(){
+const web3=window.solanaWeb3; const $=id=>document.getElementById(id);
+const logDiv=$('log'); const log=(m,ok=true)=>{const d=document.createElement('div');d.className='tx';d.innerHTML=ok?m:`<span class="bad">${m}</span>`;logDiv.prepend(d);}
+const EXPL='https://explorer.solana.com'; const txL=s=>`<a class="mono" target="_blank" href="${EXPL}/tx/${s}?cluster=devnet">${s}</a>`;
+const addrL=s=>`<a class="mono" target="_blank" href="${EXPL}/address/${s}?cluster=devnet">${s}</a>`;
+
+let conn=new web3.Connection($('rpc').value,{commitment:'confirmed'});
+$('rpc').onchange=e=>conn=new web3.Connection(e.target.value,{commitment:'confirmed'});
+$('ping').onclick=async()=>{try{$('rpcStatus').textContent='ok';log('RPC ok '+JSON.stringify(await conn.getVersion()));}catch(e){$('rpcStatus').textContent='error';log('Ping failed: '+e.message,false);}};
+
+let programId=new web3.PublicKey($('programId').value); $('programId').oninput=e=>{try{programId=new web3.PublicKey(e.target.value.trim())}catch{}};
+const provider=()=> (window.phantom&&window.phantom.solana)?window.phantom.solana:((window.solana&&window.solana.isPhantom)?window.solana:null);
+let wallet=null;
+
+$('connect').onclick=async()=>{try{
+  const p=provider(); if(!p) throw new Error('Phantom not detected');
+  const r=await p.connect({onlyIfTrusted:false}); wallet=new web3.PublicKey(r.publicKey.toString());
+  $('wallet').innerHTML=addrL(wallet.toBase58()); const lam=await conn.getBalance(wallet); $('bal').textContent=(lam/1e9).toFixed(4)+' SOL';
+  log('Connected '+wallet.toBase58());
+}catch(e){log('Connect failed: '+e.message,false);}};
+
+$('balance').onclick=async()=>{try{if(!wallet)throw new Error('Connect wallet first');const lam=await conn.getBalance(wallet);$('bal').textContent=(lam/1e9).toFixed(4)+' SOL';}catch(e){log('Balance failed: '+e.message,false);}};
+
+async function verify(signature){
+  try{
+    const tx=await conn.getTransaction(signature,{maxSupportedTransactionVersion:0});
+    if(tx && !tx.meta?.err){ log('Verified ✓ '+txL(signature)); return; }
+    const st=await conn.getSignatureStatuses([signature],{searchTransactionHistory:true});
+    const ok=!!st.value[0] && !st.value[0].err; log((ok?'Verified ✓ ':'Tx error ') + txL(signature), ok);
+  }catch(e){log('Verification failed '+txL(signature)+': '+e.message,false);}
+}
+
+$('airdrop').onclick=async()=>{try{
+  if(!wallet) throw new Error('Connect wallet first');
+  const sig=await conn.requestAirdrop(wallet,1e9); await conn.confirmTransaction(sig,'confirmed');
+  log('Airdrop '+txL(sig)); await verify(sig); const lam=await conn.getBalance(wallet); $('bal').textContent=(lam/1e9).toFixed(4)+' SOL';
+}catch(e){log('Airdrop failed: '+e.message,false);}};
+
+/*** helpers (no external libs) ***/
+const te=new TextEncoder();
+const sha=async s=>new Uint8Array(await crypto.subtle.digest('SHA-256',te.encode(s)));
+const u8=n=>Uint8Array.of(n&255); const u32=n=>new Uint8Array([n&255,(n>>8)&255,(n>>16)&255,(n>>24)&255]);
+const u64=n=>{let x=BigInt(n);const a=new Uint8Array(8);for(let i=0;i<8;i++){a[i]=Number(x&255n);x>>=8n;}return a;}
+const cat=(...A)=>{let L=0;for(const a of A)L+=a.length;const o=new Uint8Array(L);let i=0;for(const a of A){o.set(a,i);i+=a.length;}return o;}
+const pkb=k=>new web3.PublicKey(k).toBytes(); const hex=s=>{s=(s||'').replace(/^0x/,''); if(s.length%2) throw new Error('hex even'); const b=new Uint8Array(s.length/2); for(let i=0;i<b.length;i++) b[i]=parseInt(s.slice(2*i,2*i+2),16); return b;}
+const encMeta=m=>cat(pkb(m.pubkey),u8(m.isSigner?1:0),u8(m.isWritable?1:0));
+const encVec=(items,enc)=>{const parts=items.map(enc);let L=0;for(const p of parts)L+=p.length;const buf=new Uint8Array(L);let o=0;for(const p of parts){buf.set(p,o);o+=p.length;}return cat(u32(items.length),buf);}
+const vec=b=>cat(u32(b.length),b); const disc=async n=>(await sha('global:'+n)).slice(0,8);
+
+/*** ATA helpers ***/
+const ASSOCIATED_TOKEN_PROGRAM_ID=new web3.PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+const getAta=(mint,owner,tp)=>web3.PublicKey.findProgramAddressSync([owner.toBytes(),tp.toBytes(),mint.toBytes()],ASSOCIATED_TOKEN_PROGRAM_ID)[0];
+const ataIx=(payer,ata,owner,mint,tp)=>new web3.TransactionInstruction({programId:ASSOCIATED_TOKEN_PROGRAM_ID,keys:[
+  {pubkey:payer,isSigner:true,isWritable:true},{pubkey:ata,isSigner:false,isWritable:true},
+  {pubkey:owner,isSigner:false,isWritable:false},{pubkey:mint,isSigner:false,isWritable:false},
+  {pubkey:web3.SystemProgram.programId,isSigner:false,isWritable:false},{pubkey:tp,isSigner:false,isWritable:false},
+],data:new Uint8Array([])});
+
+/*** PDAs (mirror your contract’s seeds) ***/
+const poolPda=(mint,owner)=>web3.PublicKey.findProgramAddressSync([te.encode('pool'),mint.toBytes(),owner.toBytes()],programId)[0];
+const vaultAuthPda=pool=>web3.PublicKey.findProgramAddressSync([te.encode('vault_auth'),pool.toBytes()],programId)[0];
+
+let C={pool:null,vAuth:null,ata:null,tp:null};
+
+async function tokenProgForMint(m){const acc=await conn.getAccountInfo(m); if(!acc) throw new Error('Mint not found'); $('whichTokenProg').textContent=acc.owner.toBase58(); return acc.owner;}
+
+$('derivePdas').onclick=async()=>{try{
+  const p=provider(); if(!p) throw new Error('Connect wallet first');
+  const owner=new web3.PublicKey(p.publicKey.toString());
+  const mint=new web3.PublicKey(($('mint').value||'').trim());
+  const tp=await tokenProgForMint(mint); C.tp=tp;
+  const pool=poolPda(mint,owner); const vA=vaultAuthPda(pool); const ata=getAta(mint,vA,tp);
+  C.pool=pool; C.vAuth=vA; C.ata=ata;
+  $('poolPda').innerHTML=addrL(pool.toBase58());
+  $('vaultAuth').innerHTML=addrL(vA.toBase58());
+  $('vaultAta').innerHTML=addrL(ata.toBase58());
+  log('Derived PDAs');
+}catch(e){log('derivePdas failed: '+e.message,false);}};
+
+$('createVaultAta').onclick=async()=>{try{
+  if(!wallet) throw new Error('Connect wallet first'); if(!C.ata) throw new Error('Derive PDAs first');
+  const mint=new web3.PublicKey(($('mint').value||'').trim());
+  const ix=ataIx(wallet,C.ata,C.vAuth,mint,C.tp);
+  const tx=new web3.Transaction().add(ix);
+  const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash(); tx.recentBlockhash=blockhash; tx.feePayer=wallet;
+  const p=provider(); const signed=await p.signTransaction(tx);
+  const sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false});
+  await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},'confirmed');
+  log('Create Vault ATA: '+txL(sig)); await verify(sig);
+}catch(e){ if(String(e).includes('already in use')) log('Vault ATA already exists (ok).'); else log('createVaultAta failed: '+e.message,false);}};
+
+$('vaultBal').onclick=async()=>{try{
+  if(!C.ata) throw new Error('Derive PDAs first');
+  const info=await conn.getTokenAccountBalance(C.ata).catch(()=>null);
+  $('vaultAmount').textContent=info?.value?.amount ?? '0';
+}catch(e){log('vaultBal failed: '+e.message,false);}};
+
+$('execute').onclick=async()=>{try{
+  if(!wallet) throw new Error('Connect wallet first'); if(!C.pool||!C.vAuth||!C.ata) throw new Error('Derive PDAs first');
+  const principal=BigInt(($('principal').value||'0').trim());
+  let route=[]; try{route=JSON.parse(($('route').value||'[]').trim())}catch{throw new Error('Invalid JSON');}
+
+  const encIx=ix=>{ const pid=new web3.PublicKey(ix.programId);
+    const metas=(ix.metas||[]).map(m=>({pubkey:new web3.PublicKey(m.pubkey),isSigner:!!m.isSigner,isWritable:!!m.isWritable}));
+    const data=hex(ix.data||''); return cat(pkb(pid), encVec(metas, m=>encMeta(m)), vec(data)); };
+  const routeBin=encVec(route, encIx);
+  const data=cat(await disc('execute_route'), u64(principal), routeBin);
+
+  const keys=[
+    {pubkey:new web3.PublicKey(($('globalAddr')?.value||'').trim()||wallet.toBase58()),isSigner:false,isWritable:true},
+    {pubkey:C.pool,isSigner:false,isWritable:true},
+    {pubkey:C.vAuth,isSigner:false,isWritable:false},
+    {pubkey:C.ata,isSigner:false,isWritable:true},
+    {pubkey:wallet,isSigner:true,isWritable:true},
+    {pubkey:C.tp,isSigner:false,isWritable:false},
+  ];
+  const extra=new Set();
+  for(const step of route){
+    extra.add(new web3.PublicKey(step.programId).toBase58());
+    for(const m of (step.metas||[])) extra.add(new web3.PublicKey(m.pubkey).toBase58());
+  }
+  for(const b58 of extra){ const pk=new web3.PublicKey(b58); if(!keys.find(k=>k.pubkey.equals(pk))) keys.push({pubkey:pk,isSigner:false,isWritable:false}); }
+
+  const ix=new web3.TransactionInstruction({programId,keys,data});
+  const tx=new web3.Transaction(); const lim=parseInt($('cuLimit').value,10)||0; const price=parseInt($('cuPrice').value,10)||0;
+  if(lim>0) tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({units:lim}));
+  if(price>0) tx.add(web3.ComputeBudgetProgram.setComputeUnitPrice({microLamports:price}));
+  tx.add(ix);
+
+  const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash(); tx.recentBlockhash=blockhash; tx.feePayer=wallet;
+  const p=provider(); const signed=await p.signTransaction(tx);
+  const sig=await conn.sendRawTransaction(signed.serialize(),{skipPreflight:false});
+  await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},'confirmed');
+  log('Execute Route: '+txL(sig)); await verify(sig);
+}catch(e){log('execute failed: '+e.message,false);}};
+
+$('verifyDex').onclick=async()=>{try{
+  const ids=$('dexList').value.split(/[\r\n]+/).map(s=>s.trim()).filter(Boolean);
+  if(!ids.length){$('dexResults').textContent='No program IDs provided.';return;}
+  const out=[]; for(const id of ids){try{
+    const info=await conn.getAccountInfo(new web3.PublicKey(id));
+    if(!info){out.push(id+': NOT FOUND');continue;}
+    out.push(`${id}: owner=${info.owner.toBase58()} executable=${info.executable} lamports=${info.lamports}`);
+  }catch(e){out.push(`${id}: ERROR ${e.message}`);}}
+  $('dexResults').innerText=out.join('\\n');
+}catch(e){$('dexResults').innerText='Verifier failed: '+e.message;}
+})();
+</script>

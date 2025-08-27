@@ -1,0 +1,61 @@
+[
+  {
+    "pubkey": "5q1UBDFFEpYRQDV2LfC8prMetdHxrYszEW4wqjQNiQHX",
+    "path": "wallets/devtest-20250823-1605-01.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:05:55.351Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropSig": "4angA9wYdnXnxZarLfB1goQeRPThijYG53wnFSQwdZVgJmokrXyzy98qMxptPzwz8WUYqF2cXZryDkMnpTFLUxPo"
+  },
+  {
+    "pubkey": "8D9Fm7tMnvBPocMDik5pFyX7HWveNqpQFzqAe64vJLUg",
+    "path": "wallets/devtest-20250823-1605-02.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:05:57.704Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropError": "429 Too Many Requests:  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL\"}, \"id\": \"6288d40a-3070-44d7-b68d-85689c8f1aaa\" } \r\n",
+    "fundSig": "3w2N5ffvgSgpt29igkgdtxMHkHQMmp8S7Ta6672VqgxD5ZgeFnxtCSaNsKUFDPUpub7JHNDL4Tuey89aNJqcBAUn"
+  },
+  {
+    "pubkey": "Ex8GsYBFGuK5qqARYukbhLGdw9hA8zV4A95AP17QeREb",
+    "path": "wallets/devtest-20250823-1605-03.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:06:08.255Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropError": "429 Too Many Requests:  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL\"}, \"id\": \"13bf6b47-e176-43fc-b005-18b261c66c02\" } \r\n",
+    "fundSig": "3hTbLgLWq3FRFgafEDx17nh2DDmSi8Hm4CwXSZecqhKjnXmx3SBXrCeKRETCUdd8tugqMaXtpmXEn3Ags7q3SQUY"
+  },
+  {
+    "pubkey": "CG9WUDHE7MZB7zFRr7GvyPLfP5m1dxXqaLzijoUDWu9k",
+    "path": "wallets/devtest-20250823-1605-04.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:06:19.448Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropError": "429 Too Many Requests:  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL\"}, \"id\": \"68dd1076-e892-45d3-8d82-80fcc0e085b6\" } \r\n",
+    "fundSig": "6xNc9jwsFd8UyzKMhSCP2xYn9LpCGkwu9kU6Qcfa6XmoeB6r46yjR8XAojGuw9QDM8NFcnVFzqT4JYDye2p82cA"
+  },
+  {
+    "pubkey": "FNSQzphHNYyPwnQHtvu38FYgMd4Xj4k88wnV6LfvQ2C",
+    "path": "wallets/devtest-20250823-1605-05.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:06:30.635Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropError": "429 Too Many Requests:  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL\"}, \"id\": \"1a954da3-2682-4857-8031-8162e21d91e3\" } \r\n",
+    "fundSig": "426Qa5fW4NUtSA17CnM2RDzZDCyrugFtsRjCAPGQgUsDUq32jHpQShG8CDP2mEfacw3G672EnWRXNcsAjFKK2Wue"
+  },
+  {
+    "pubkey": "5BvSzG3WBTckJ53rtHS7ZfsuN6QEQ7LZBsQRVJeNrWjs",
+    "path": "wallets/devtest-20250823-1605-06.json",
+    "tag": "devtest",
+    "createdAt": "2025-08-23T08:06:41.745Z",
+    "cluster": "devnet",
+    "status": "funded",
+    "airdropError": "429 Too Many Requests:  {\"jsonrpc\":\"2.0\",\"error\":{\"code\": 429, \"message\":\"You've either reached your airdrop limit today or the airdrop faucet has run dry. Please visit https://faucet.solana.com for alternate sources of test SOL\"}, \"id\": \"1d611172-10ab-45ed-a58c-05245a27b655\" } \r\n",
+    "fundSig": "4tf6FWDtUgA6Qo3jTjx4CUF6TkHhRsypQU3hwLbgB4MDs5NeyMBgjXe63rEZbvTyUu24vw7kaFZg6T15ycv4x54c"
+  }
+]

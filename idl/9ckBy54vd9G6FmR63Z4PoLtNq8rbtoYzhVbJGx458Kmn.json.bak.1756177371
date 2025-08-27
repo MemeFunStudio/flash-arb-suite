@@ -1,0 +1,484 @@
+{
+  "address": "9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn",
+  "metadata": {
+    "name": "flash_executor",
+    "version": "0.3.0",
+    "spec": "0.1.0"
+  },
+  "instructions": [
+    {
+      "name": "create_pool",
+      "discriminator": [
+        233,
+        146,
+        209,
+        142,
+        207,
+        104,
+        64,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global"
+          ]
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault_authority"
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "min_profit_bps",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "execute_route",
+      "discriminator": [
+        246,
+        14,
+        81,
+        121,
+        140,
+        237,
+        86,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true,
+          "isMut": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "isMut": true
+        },
+        {
+          "name": "vault_authority"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "isMut": true
+        },
+        {
+          "name": "caller",
+          "signer": true,
+          "isSigner": true
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": [
+        {
+          "name": "principal",
+          "type": "u64"
+        },
+        {
+          "name": "route",
+          "type": {
+            "vec": {
+              "defined": {
+                "name": "SerializedInstruction"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "initialize_global",
+      "discriminator": [
+        47,
+        225,
+        15,
+        112,
+        86,
+        51,
+        190,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "payer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "owner",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "set_executor",
+      "discriminator": [
+        92,
+        0,
+        234,
+        186,
+        174,
+        14,
+        56,
+        11
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "exec",
+          "type": "pubkey"
+        },
+        {
+          "name": "enable",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_pool_params",
+      "discriminator": [
+        155,
+        57,
+        152,
+        27,
+        154,
+        140,
+        166,
+        126
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true
+        },
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "min_profit_bps",
+          "type": "u16"
+        },
+        {
+          "name": "enabled",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "set_whitelist",
+      "discriminator": [
+        69,
+        161,
+        114,
+        252,
+        244,
+        66,
+        197,
+        48
+      ],
+      "accounts": [
+        {
+          "name": "global",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "global"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "program_id",
+          "type": "pubkey"
+        },
+        {
+          "name": "enable",
+          "type": "bool"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "GlobalConfig",
+      "discriminator": [
+        149,
+        8,
+        156,
+        202,
+        160,
+        252,
+        176,
+        217
+      ]
+    },
+    {
+      "name": "TokenPool",
+      "discriminator": [
+        103,
+        51,
+        150,
+        210,
+        226,
+        131,
+        104,
+        33
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "NotExecutor",
+      "msg": "Caller is not an authorized executor"
+    },
+    {
+      "code": 6001,
+      "name": "PoolDisabled",
+      "msg": "Pool is disabled"
+    },
+    {
+      "code": 6002,
+      "name": "DexNotWhitelisted",
+      "msg": "DEX program not whitelisted"
+    },
+    {
+      "code": 6003,
+      "name": "InsufficientProfit",
+      "msg": "Insufficient profit after route"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidVaultAuthority",
+      "msg": "Invalid vault authority PDA"
+    },
+    {
+      "code": 6005,
+      "name": "VaultOwnerMismatch",
+      "msg": "Vault owner mismatch"
+    },
+    {
+      "code": 6006,
+      "name": "VaultMintMismatch",
+      "msg": "Vault mint mismatch"
+    },
+    {
+      "code": 6007,
+      "name": "MissingAccount",
+      "msg": "Missing account in remaining list"
+    },
+    {
+      "code": 6008,
+      "name": "TooManyExecutors",
+      "msg": "Too many executors configured"
+    },
+    {
+      "code": 6009,
+      "name": "TooManyWhitelisted",
+      "msg": "Too many whitelisted programs configured"
+    }
+  ],
+  "types": [
+    {
+      "name": "GlobalConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "executors",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "whitelisted",
+            "type": {
+              "vec": "pubkey"
+            }
+          },
+          {
+            "name": "executor_limit",
+            "type": "u16"
+          },
+          {
+            "name": "whitelist_limit",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "SerializedInstruction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "program_id",
+            "type": "pubkey"
+          },
+          {
+            "name": "metas",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "WireMeta"
+                }
+              }
+            }
+          },
+          {
+            "name": "data",
+            "type": "bytes"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TokenPool",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_authority_bump",
+            "type": "u8"
+          },
+          {
+            "name": "min_profit_bps",
+            "type": "u16"
+          },
+          {
+            "name": "enabled",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WireMeta",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pubkey",
+            "type": "pubkey"
+          },
+          {
+            "name": "is_signer",
+            "type": "bool"
+          },
+          {
+            "name": "is_writable",
+            "type": "bool"
+          }
+        ]
+      }
+    }
+  ]
+}

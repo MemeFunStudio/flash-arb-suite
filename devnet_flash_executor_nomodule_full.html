@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Flash Executor — Devnet • NO-MODULE • LIVE • no mocks</title>
+<link rel="icon" href="data:," />
+<style>
+  :root { --bg:#0f1221; --card:#171a2e; --muted:#8aa0b6; --ok:#36d399; --bad:#ff6b6b; --fg:#e6eef7; --blue:#447cf5; }
+  html,body{background:var(--bg);color:var(--fg);font:15px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial;margin:0}
+  .wrap{max-width:1180px;margin:28px auto;padding:0 16px}
+  h1{font-weight:800;letter-spacing:.3px;margin:8px 0 18px;font-size:28px}
+  .badge{background:#0b1224;border:1px solid #273250;color:#ccd7ee;border-radius:14px;padding:2px 10px;margin-left:8px;font-family:ui-monospace,Menlo,Consolas,monospace}
+  .sub{color:var(--muted);margin:-6px 0 18px}
+  .card{background:var(--card);border-radius:14px;padding:16px 16px;margin:14px 0;border:1px solid #202644}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  label{display:block;font-size:12px;color:#9fb3c8;margin:6px 0 6px 2px}
+  input,select,textarea{background:#11152a;border:1px solid #2a3358;color:var(--fg);border-radius:10px;padding:10px 12px;outline:none}
+  input,select{height:40px}
+  input:focus,select:focus,textarea:focus{border-color:#3b4b86;box-shadow:0 0 0 2px #27325a inset}
+  textarea{width:100%;min-height:110px}
+  .btn{background:#1b2350;border:1px solid #2e3d86;color:#dfe8ff;border-radius:12px;padding:10px 14px;cursor:pointer}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.ghost{background:#0f132b;border-color:#2a345f}
+  .btn.ok{background:#133c2b;border-color:#1f694a}
+  .btn.warn{background:#4d2a2a;border-color:#713535}
+  .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+  .pill{padding:2px 8px;border-radius:10px;border:1px solid #33406d;background:#0d1430;color:#9db5ff;font-size:12px}
+  .k{width:220px}
+  .grow{flex:1}
+  .txlog{white-space:pre-wrap;background:#0b1128;border:1px solid #1d2a55;border-radius:12px;padding:12px 14px;color:#cfe3ff;min-height:80px}
+  .ok{color:var(--ok)} .bad{color:var(--bad)} .muted{color:var(--muted)}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:960px){.grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Flash Executor — Devnet
+    <span class="badge">NO-MODULE</span>
+    <span class="badge">local web3.iife.js</span>
+    <span class="badge">LIVE • no mocks</span>
+  </h1>
+  <div class="sub">Every action below sends a real transaction to <b>Devnet</b> and prints a <b>Solana Explorer</b> link (no stubs, no simulation).</div>
+
+  <!-- Diagnostics -->
+  <div class="card">
+    <div class="row">
+      <div class="pill">Diagnostics — <span id="diag">loading…</span></div>
+      <div class="pill">JS: <span id="js">yes</span></div>
+      <div class="pill">web3: <span id="w3">checking…</span></div>
+      <div class="pill">errors: <span id="errs">none</span></div>
+    </div>
+  </div>
+
+  <!-- Cluster + Wallet -->
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label>RPC Cluster</label>
+        <div class="row">
+          <select id="rpc" class="k">
+            <option value="https://api.devnet.solana.com">https://api.devnet.solana.com</option>
+            <option value="https://api.devnet.solana.com/?commitment=confirmed">https://api.devnet.solana.com/?commitment=confirmed</option>
+          </select>
+          <button class="btn" id="ping">Ping</button>
+          <div class="pill">status: <span id="status">–</span></div>
+        </div>
+      </div>
+      <div>
+        <label>Program ID (your deployed program)</label>
+        <input id="program" class="grow mono" value="9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn" />
+        <div class="muted" style="margin-top:6px">Change if needed; all instructions send to this program by default.</div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="connect">Connect Phantom</button>
+      <button class="btn" id="airdrop">Airdrop 1 SOL</button>
+      <button class="btn" id="refresh">Refresh Balance</button>
+      <div class="pill">wallet: <span id="wallet">–</span></div>
+      <div class="pill">balance: <span id="balance">–</span></div>
+    </div>
+
+    <div class="grid" style="margin-top:12px">
+      <div>
+        <label>Compute Units (limit)</label>
+        <input id="cuLimit" class="mono" value="800000" />
+      </div>
+      <div>
+        <label>Priority Fee (microLamports per CU)</label>
+        <input id="cuPrice" class="mono" value="0" />
+      </div>
+      <div>
+        <label>Skip Preflight?</label>
+        <select id="skipPre" class="k">
+          <option>false</option>
+          <option>true</option>
+        </select>
+      </div>
+      <div>
+        <label>Simulate before send?</label>
+        <select id="doSim" class="k">
+          <option>false</option>
+          <option>true</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDA Explorer -->
+  <div class="card">
+    <h3>PDA Explorer</h3>
+    <div class="grid">
+      <div>
+        <label>Seeds (one per line; prefixes: <b>utf8:</b>, <b>hex:</b>, <b>u8:</b>)</label>
+        <textarea id="seeds" class="mono">utf8:global</textarea>
+      </div>
+      <div>
+        <label>Derived PDA</label>
+        <input id="pdaOut" class="mono grow" readonly />
+        <div class="row" style="margin-top:8px">
+          <div class="pill">exists: <span id="pdaExists">–</span></div>
+          <div class="pill">owner: <span id="pdaOwner">–</span></div>
+          <button class="btn" id="findPda">Find PDA</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pool / ATA Helpers -->
+  <div class="card">
+    <h3>USDC / Token Helpers (derive ATA, read balances)</h3>
+    <div class="grid">
+      <div>
+        <label>Mint (USDC devnet: <span class="mono">Ejmc1UB4EsES5oAaRN9bQFKv5fC5J9F5G7nD7uQDUCAb</span>)</label>
+        <input id="mint" class="mono grow" placeholder="Devnet token mint" />
+      </div>
+      <div>
+        <label>Token Program</label>
+        <input id="tokenProgram" class="mono grow" value="TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn" id="deriveAta">Derive/My ATA</button>
+      <button class="btn" id="createAta">Create ATA</button>
+      <button class="btn" id="ataBal">ATA Balance</button>
+      <div class="pill">ATA: <span id="ata">–</span></div>
+      <div class="pill">amount: <span id="ataAmt">–</span></div>
+    </div>
+  </div>
+
+  <!-- DEX Whitelist + Executors -->
+  <div class="card">
+    <h3>DEX Whitelist & Autobot Executors (3 tiers)</h3>
+    <div class="grid">
+      <div>
+        <label>DEX Program ID</label>
+        <input id="dexPid" class="mono grow" placeholder="Dex program id" />
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="wlDex">Whitelist DEX</button>
+          <button class="btn" id="unwlDex">Unwhitelist DEX</button>
+        </div>
+      </div>
+      <div>
+        <label>Executor</label>
+        <input id="exec" class="mono grow" placeholder="Executor pubkey" />
+        <div class="row" style="margin-top:8px">
+          <select id="execTier" class="k">
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+          </select>
+          <button class="btn" id="addExec">Add / Set Tier</button>
+          <button class="btn warn" id="rmExec">Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global init -->
+  <div class="card">
+    <h3>Global Init</h3>
+    <div class="grid">
+      <div>
+        <label>Owner (optional)</label>
+        <input id="ownerOpt" class="mono grow" placeholder="leave blank to use wallet" />
+      </div>
+      <div>
+        <label>Initialize</label>
+        <button class="btn ok" id="initGlobal">Initialize Global</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom instruction / Route -->
+  <div class="card">
+    <h3>Custom Instruction (Anchor helper built-in) & Route JSON</h3>
+    <div class="grid">
+      <div>
+        <label>Accounts (one per line → <span class="mono">pubkey, s|-, w|-</span>)</label>
+        <textarea id="ixAccts" class="mono" placeholder="YourPda...,-,w&#10;YourUser...,-,w&#10;Authority...,s,-"></textarea>
+      </div>
+      <div>
+        <label>Data (hex).  Or use “Anchor Builder” below to fill this.</label>
+        <input id="ixData" class="mono grow" placeholder="discriminator + args hex" />
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="sendIx">Send Instruction</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:14px">
+      <div>
+        <label>Anchor Builder — <span class="muted">computes discriminator + encodes args (borsh-LE)</span></label>
+        <div class="row">
+          <input id="abIx" class="mono grow" placeholder="instruction name (e.g. initialize_global)" />
+          <button class="btn ghost" id="abMake">Build data hex</button>
+        </div>
+        <textarea id="abSchema" class="mono" style="margin-top:8px" placeholder='Schema JSON. Example:
+[
+  {"name":"executor","type":"pubkey"},
+  {"name":"tier","type":"u8"}
+]
+'></textarea>
+        <textarea id="abValues" class="mono" style="margin-top:8px" placeholder='Values JSON (same order). Example:
+{"executor":"YourExecPubkey...","tier":2}
+'></textarea>
+      </div>
+      <div>
+        <label>Route JSON (multi-ix single transaction)</label>
+        <textarea id="routeJson" class="mono" placeholder='[
+  {"program":"<PROGRAM_ID>","dataHex":"...","accounts":[
+    {"pubkey":"...","isSigner":false,"isWritable":true}
+  ]}
+]'></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="sendRoute">Send Route</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TX LOG -->
+  <div class="card">
+    <h3>TX Log</h3>
+    <div id="log" class="txlog"></div>
+  </div>
+</div>
+
+<!-- Only this local script is required -->
+<script src="./vendor/web3.iife.js?v=1"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const logBox = $('log');
+  const log = (s, cls='') => { const line = document.createElement('div'); if(cls) line.className=cls; line.textContent = s; logBox.appendChild(line); logBox.scrollTop = logBox.scrollHeight; };
+
+  // Diagnostics
+  $('diag').textContent = 'ready';
+  $('w3').textContent = typeof solanaWeb3 !== 'undefined' ? 'yes' : 'no';
+
+  // Helpers
+  const conn = () => new solanaWeb3.Connection($('rpc').value, {commitment:'confirmed'});
+  const explorer = (sig) => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+  const pk = s => new solanaWeb3.PublicKey(s);
+  const sleep = ms => new Promise(r=>setTimeout(r,ms));
+  const enc = new TextEncoder();
+
+  async function getWallet() {
+    const p = window.phantom?.solana ?? window.solana;
+    if(!p) throw new Error('Phantom provider not found');
+    const res = await p.connect({ onlyIfTrusted:false });
+    $('wallet').textContent = res.publicKey.toBase58();
+    return p;
+  }
+
+  async function withBudget(ixs) {
+    const cu = parseInt($('cuLimit').value||'0',10)||0;
+    const price = parseInt($('cuPrice').value||'0',10)||0;
+    const a = [];
+    if(cu>0) a.push(solanaWeb3.ComputeBudgetProgram.setComputeUnitLimit({ units: cu }));
+    if(price>0) a.push(solanaWeb3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: price }));
+    return [...a, ...ixs];
+  }
+
+  async function sendIxs(ixs) {
+    const p = await getWallet();
+    const c = conn();
+    const msg = new solanaWeb3.Transaction().add(...await withBudget(ixs));
+    msg.feePayer = p.publicKey;
+    msg.recentBlockhash = (await c.getLatestBlockhash()).blockhash;
+
+    if ($('doSim').value === 'true') {
+      const sim = await c.simulateTransaction(msg, [ ]);
+      if(sim.value.err){ log('simulation failed: '+JSON.stringify(sim.value.err), 'bad'); throw new Error('simulation failed'); }
+      log('simulation ok', 'ok');
+    }
+
+    const signed = await p.signTransaction(msg);
+    const sig = await c.sendRawTransaction(signed.serialize(), { skipPreflight: ($('skipPre').value==='true') });
+    log('sent: '+sig+'  '+explorer(sig), 'ok');
+    const conf = await c.confirmTransaction({signature:sig, ...(await c.getLatestBlockhash()) }, 'confirmed');
+    if(conf.value.err) log('confirm err: '+JSON.stringify(conf.value.err), 'bad');
+    else log('confirmed ✓  '+explorer(sig), 'ok');
+
+    // pull program logs
+    const tx = await c.getTransaction(sig, {commitment:'confirmed', maxSupportedTransactionVersion:0});
+    if(tx?.meta?.logMessages) log('logs:\n'+tx.meta.logMessages.join('\n'));
+  }
+
+  // Anchor helpers (discriminator + simple Borsh encoders)
+  async function anchorDisc(ixName) {
+    const h = await crypto.subtle.digest('SHA-256', enc.encode('global::'+ixName));
+    return [...new Uint8Array(h).slice(0,8)].map(x=>x.toString(16).padStart(2,'0')).join('');
+  }
+  const hexConcat = (...hexes) => hexes.join('');
+  const toHex = (u8) => [...u8].map(x=>x.toString(16).padStart(2,'0')).join('');
+  const u8le = n => toHex(Uint8Array.of(n&0xff));
+  const u16le = n => { const b=new Uint8Array(2); new DataView(b.buffer).setUint16(0,n,true); return toHex(b); };
+  const u32le = n => { const b=new Uint8Array(4); new DataView(b.buffer).setUint32(0,n>>>0,true); return toHex(b); };
+  const u64le = n => { const b=new Uint8Array(8); new DataView(b.buffer).setBigUint64(0, BigInt(n), true); return toHex(b); };
+  const boolle = b => u8le(!!b?1:0);
+  const strBorsh = s => { const b=enc.encode(s); const len = u32le(b.length); return len + toHex(b); };
+  const pubkeyHex = s => toHex(pk(s).toBytes());
+
+  function encodeByType(type, val){
+    switch(type){
+      case 'u8':   return u8le(Number(val));
+      case 'u16':  return u16le(Number(val));
+      case 'u32':  return u32le(Number(val));
+      case 'u64':  return u64le(val);
+      case 'bool': return boolle(!!val);
+      case 'string': return strBorsh(String(val));
+      case 'pubkey': return pubkeyHex(String(val));
+      case 'hex': return String(val).toLowerCase().replace(/^0x/,'');
+      default: throw new Error('unknown type '+type);
+    }
+  }
+
+  // Parse accounts lines: "pubkey, s|-, w|-"
+  function parseAccounts(text){
+    const lines = (text||'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+    return lines.map(line=>{
+      const [a,b,c] = line.split(',').map(s=>s.trim());
+      return { pubkey:a, isSigner: /s/i.test(b||''), isWritable: /w/i.test(c||'') };
+    });
+  }
+
+  // UI actions
+  $('ping').onclick = async ()=>{
+    try{ await conn().getEpochInfo(); $('status').textContent='ok'; log('RPC ok '+JSON.stringify(await conn().getVersion())); }
+    catch(e){ $('status').textContent='bad'; log('ping failed: '+e.message,'bad'); }
+  };
+
+  $('connect').onclick = getWallet;
+
+  $('airdrop').onclick = async ()=>{
+    try{
+      const p = await getWallet();
+      const c = conn();
+      const sig = await c.requestAirdrop(p.publicKey, 1e9);
+      log('airdrop: '+explorer(sig));
+      await c.confirmTransaction({signature:sig, ...(await c.getLatestBlockhash()) }, 'confirmed');
+      $('balance').textContent = ((await c.getBalance(p.publicKey))/1e9).toFixed(4)+' SOL';
+    }catch(e){ log('airdrop failed: '+e.message,'bad'); }
+  };
+
+  $('refresh').onclick = async ()=>{
+    try{
+      const p = await getWallet();
+      $('balance').textContent = ((await conn().getBalance(p.publicKey))/1e9).toFixed(4)+' SOL';
+    }catch(e){ log('balance failed: '+e.message,'bad'); }
+  };
+
+  // PDA explorer
+  function parseSeedLine(s){
+    if(/^utf8:/i.test(s)) return enc.encode(s.slice(5));
+    if(/^hex:/i.test(s)){ const h=s.slice(4).replace(/\s+/g,''); if(h.length%2) throw new Error('hex length'); const a=new Uint8Array(h.length/2); for(let i=0;i<a.length;i++) a[i]=parseInt(h.slice(2*i,2*i+2),16); return a; }
+    if(/^u8:/i.test(s))  return Uint8Array.of(Number(s.slice(3))&0xff);
+    throw new Error('seed must start with utf8:, hex:, or u8:');
+  }
+  $('findPda').onclick = async ()=>{
+    try{
+      const seeds = $('seeds').value.split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(parseSeedLine).map(a=>a instanceof Uint8Array ? a : Uint8Array.from(a));
+      const [addr,_] = solanaWeb3.PublicKey.findProgramAddressSync(seeds, pk($('program').value));
+      $('pdaOut').value = addr.toBase58();
+      const info = await conn().getAccountInfo(addr);
+      $('pdaExists').textContent = info? 'yes':'no';
+      $('pdaOwner').textContent = info?.owner?.toBase58()||'–';
+    }catch(e){ log('PDA error: '+e.message,'bad'); }
+  };
+
+  // ATA helpers
+  $('deriveAta').onclick = async ()=>{
+    try{
+      const p = await getWallet();
+      const ata = solanaWeb3.PublicKey.findProgramAddressSync(
+        [ p.publicKey.toBytes(), pk($('tokenProgram').value).toBytes(), pk($('mint').value).toBytes() ],
+        pk('ATokenGPvbdGVxr1zbhZbZisgW5xWbE2eHtnsLr8N1')
+      )[0];
+      $('ata').textContent = ata.toBase58();
+    }catch(e){ log('ATA derive failed: '+e.message,'bad'); }
+  };
+  $('createAta').onclick = async ()=>{
+    try{
+      const p = await getWallet();
+      const ata = solanaWeb3.getAssociatedTokenAddressSync(pk($('mint').value), p.publicKey, false, pk($('tokenProgram').value));
+      const ix = solanaWeb3.createAssociatedTokenAccountInstruction(
+        p.publicKey, ata, p.publicKey, pk($('mint').value), pk($('tokenProgram').value)
+      );
+      await sendIxs([ix]);
+      $('ata').textContent = ata.toBase58();
+    }catch(e){ log('create ATA failed: '+e.message,'bad'); }
+  };
+  $('ataBal').onclick = async ()=>{
+    try{
+      const p = await getWallet();
+      const ata = solanaWeb3.getAssociatedTokenAddressSync(pk($('mint').value), p.publicKey, false, pk($('tokenProgram').value));
+      $('ata').textContent = ata.toBase58();
+      const a = await conn().getTokenAccountBalance(ata);
+      $('ataAmt').textContent = a?.value?.uiAmountString ?? '0';
+    }catch(e){ log('ATA balance failed: '+e.message,'bad'); }
+  };
+
+  // DEX whitelist + Executors — generic (edit accounts for your program)
+  async function sendAnchor(ixName, accounts, argsHex){
+    const dataHex = (await anchorDisc(ixName)) + (argsHex||'');
+    const ixs = [ new solanaWeb3.TransactionInstruction({
+      programId: pk($('program').value),
+      keys: accounts.map(a=>({ pubkey: pk(a.pubkey), isSigner:a.isSigner, isWritable:a.isWritable })),
+      data: Uint8Array.from(dataHex.match(/.{1,2}/g).map(b=>parseInt(b,16)))
+    }) ];
+    await sendIxs(ixs);
+  }
+
+  // Buttons below use editable templates so you can wire them to your on-chain accounts quickly.
+  $('wlDex').onclick = async ()=>{
+    // EDIT these accounts to match your program context for whitelist
+    const accounts = parseAccounts(`YourGlobalPda...,-,w
+${$('dexPid').value},-,-
+SystemProgram11111111111111111111111111111111,-,-`);
+    // args: dex_pid (pubkey)
+    const args = pubkeyHex($('dexPid').value);
+    await sendAnchor('whitelist_dex', accounts, args);
+  };
+  $('unwlDex').onclick = async ()=>{
+    const accounts = parseAccounts(`YourGlobalPda...,-,w
+${$('dexPid').value},-,-
+SystemProgram11111111111111111111111111111111,-,-`);
+    const args = pubkeyHex($('dexPid').value);
+    await sendAnchor('unwhitelist_dex', accounts, args);
+  };
+  $('addExec').onclick = async ()=>{
+    const exec = $('exec').value, tier = parseInt($('execTier').value,10);
+    const accounts = parseAccounts(`YourGlobalPda...,-,w
+${exec},-,-
+SystemProgram11111111111111111111111111111111,-,-`);
+    const args = hexConcat(pubkeyHex(exec), u8le(tier));
+    await sendAnchor('set_executor_tier', accounts, args);
+  };
+  $('rmExec').onclick = async ()=>{
+    const exec = $('exec').value;
+    const accounts = parseAccounts(`YourGlobalPda...,-,w
+${exec},-,-
+SystemProgram11111111111111111111111111111111,-,-`);
+    const args = pubkeyHex(exec);
+    await sendAnchor('remove_executor', accounts, args);
+  };
+
+  // Global Init (owner optional)
+  $('initGlobal').onclick = async ()=>{
+    const owner = $('ownerOpt').value || $('wallet').textContent;
+    // EDIT the accounts to your init context (e.g., global PDA, payer, system)
+    const accounts = parseAccounts(`YourGlobalPda...,-,w
+${owner},s,w
+SystemProgram11111111111111111111111111111111,-,-`);
+    // args: maybe none — or owner pubkey depending on your program
+    const args = pubkeyHex(owner); // if your init has NO args, set args='' instead
+    await sendAnchor('initialize_global', accounts, args);
+  };
+
+  // Custom instruction sender
+  $('sendIx').onclick = async ()=>{
+    try{
+      const accounts = parseAccounts($('ixAccts').value);
+      const dataHex = ($('ixData').value||'').trim().toLowerCase();
+      const ix = new solanaWeb3.TransactionInstruction({
+        programId: pk($('program').value),
+        keys: accounts.map(a=>({pubkey:pk(a.pubkey),isSigner:a.isSigner,isWritable:a.isWritable})),
+        data: Uint8Array.from((dataHex.match(/.{1,2}/g)||[]).map(b=>parseInt(b,16)))
+      });
+      await sendIxs([ix]);
+    }catch(e){ log('send ix failed: '+e.message,'bad'); }
+  };
+
+  // Anchor Builder
+  $('abMake').onclick = async ()=>{
+    try{
+      const name = $('abIx').value.trim();
+      const schema = JSON.parse($('abSchema').value||'[]'); // array of {name,type}
+      const values = JSON.parse($('abValues').value||'{}');
+      const disc = await anchorDisc(name);
+      const args = schema.map(f=>encodeByType(f.type, values[f.name]));
+      const hex = disc + args.join('');
+      $('ixData').value = hex;
+      log('anchor dataHex built for '+name+': '+hex, 'ok');
+    }catch(e){ log('anchor builder error: '+e.message,'bad'); }
+  };
+
+  // Route JSON
+  $('sendRoute').onclick = async ()=>{
+    try{
+      const arr = JSON.parse($('routeJson').value||'[]');
+      const ixs = arr.map(it => new solanaWeb3.TransactionInstruction({
+        programId: pk(it.program || $('program').value),
+        keys: it.accounts.map(a=>({pubkey:pk(a.pubkey),isSigner:a.isSigner,isWritable:a.isWritable})),
+        data: Uint8Array.from((it.dataHex.match(/.{1,2}/g)||[]).map(b=>parseInt(b,16)))
+      }));
+      await sendIxs(ixs);
+    }catch(e){ log('route failed: '+e.message,'bad'); }
+  };
+
+  // On load: set status
+  window.addEventListener('load', async ()=>{
+    $('status').textContent = '–';
+    try{ await conn().getVersion(); $('status').textContent = 'ok'; }catch{}
+  });
+})();
+</script>
+</body>
+</html>

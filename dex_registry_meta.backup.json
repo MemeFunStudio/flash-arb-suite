@@ -1,0 +1,10 @@
+{
+  "clusterDefault": "devnet",
+  "tierPolicies": {
+    "1": { "minProfitUSD": 250000, "perTradeCapUSD": 25000000 },
+    "2": { "minProfitUSD": 100000, "perTradeCapUSD": 15000000 },
+    "3": { "minProfitUSD": 20000,  "perTradeCapUSD": 5000000 }
+  },
+  "routeSelection": "maximizeExpectedNetSpreadThenProfitGuard",
+  "notes": "Rank routes by expected net spread first; only execute if expected profit >= tier minProfit and notional <= perTradeCap. Some programs do not publish devnet IDs; they remain mainnet-only until you switch clusters."
+}

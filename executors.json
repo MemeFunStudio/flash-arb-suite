@@ -1,0 +1,8 @@
+[
+  {"pubkey":"4EoqK5CRfK4Jy4qF6BMLWEPcqtgY1dd2xuoieePM35tM","role":"BTC_AutoBot","note":"tier1"},
+  {"pubkey":"6ZvjbY3CmHCjJjdGSh7GXeJSMbFk7iCuMMQZABva2ow9","role":"ETH_AutoBot","note":"tier2"},
+  {"pubkey":"B9hc2SHHybJm2EnBvbWG8R7p2MoYoYn1obmm34WMRTcZ","role":"ALT_AutoBot","note":"tier3"},
+  {"pubkey":"7Ry4iwrTkPy4Q9qU9tEfejYzamhsQyR3hDBkWxF6BxJ2","role":"Team","note":"Oscar"},
+  {"pubkey":"GnJ4CqpTr4w93QfzsX8ySSkGkFtj1R9z7KSbAHpRw3kG","role":"Team","note":"JohnPeter"},
+  {"pubkey":"OWNER_PUBKEY_PLACEHOLDER","role":"Team","note":"Admin"}
+]

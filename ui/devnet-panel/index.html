@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solana Devnet Control Panel — Global & Executor Keys</title>
+  <style>
+    :root{--bg:#0f1221;--card:#171a2e;--ink:#e8eaf6;--muted:#9aa3b2;--acc:#7aa2ff;--ok:#26c281;--warn:#f6c343;--err:#ff6b6b}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    h1{font-size:22px;margin:8px 0 16px;font-weight:700}
+    .card{background:var(--card);border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+    label{display:block;color:var(--muted);margin:6px 0 4px}
+    input,select,textarea{width:100%;box-sizing:border-box;background:#0d1020;border:1px solid #2a2f4a;color:var(--ink);padding:10px 12px;border-radius:12px}
+    input[type="checkbox"]{width:auto}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .btn{display:inline-block;background:var(--acc);color:#0b0f1e;border:0;padding:10px 14px;border-radius:14px;font-weight:700;cursor:pointer}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+    .btn.alt{background:#2c3358;color:var(--ink)}
+    .pill{display:inline-flex;align-items:center;gap:8px;background:#1b2140;border:1px solid #2a2f4a;color:var(--ink);padding:6px 10px;border-radius:999px;font-size:12px}
+    .muted{color:var(--muted)}
+    .ok{color:var(--ok)}
+    .warn{color:var(--warn)}
+    .err{color:var(--err)}
+    .flex{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .right{margin-left:auto}
+    code,kbd{background:#0d1020;border:1px solid #2a2f4a;padding:2px 6px;border-radius:8px}
+    pre{white-space:pre-wrap;background:#0d1020;border:1px solid #2a2f4a;padding:12px;border-radius:14px;max-height:320px;overflow:auto}
+    hr{border:0;border-top:1px solid #262b47;margin:14px 0}
+    small{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Solana Devnet Control Panel — Global & Executor Keys</h1>
+    <div class="card">
+      <div class="flex">
+        <div class="pill" id="walletStatus">Wallet: <span class="muted">not connected</span></div>
+        <div class="pill" id="clusterStatus">Cluster: devnet</div>
+        <button id="btnConnect" class="btn right">Connect Phantom</button>
+      </div>
+      <small class="muted">Use this panel to send admin instructions to your deployed program on <b>Devnet</b>. It supports Anchor-style instruction discriminators and an optional single <i>Pubkey</i> argument for setters (e.g., new authority/executor).</small>
+    </div>
+
+    <div class="card">
+      <div class="row">
+        <div>
+          <label>RPC Endpoint</label>
+          <select id="rpc">
+            <option value="https://api.devnet.solana.com">https://api.devnet.solana.com</option>
+            <option value="https://devnet.helius-rpc.com/?api-key=">Helius Devnet (add key)</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <input id="rpcCustom" placeholder="Custom RPC URL" style="display:none;margin-top:8px" />
+        </div>
+        <div>
+          <label>Program ID (base58)</label>
+          <input id="programId" placeholder="Your program ID, e.g. 9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Config / State PDA (optional)</label>
+          <input id="configPda" placeholder="If your instruction requires a config/state account, paste it here" />
+        </div>
+        <div>
+          <label>Derive PDA (optional)</label>
+          <div class="row">
+            <input id="seed1" placeholder="seed #1 (utf8 or base58 pubkey)" />
+            <input id="seed2" placeholder="seed #2 (optional)" />
+          </div>
+          <button class="btn alt" id="btnDerivePda" style="margin-top:8px">Derive PDA &rarr; Config</button>
+        </div>
+      </div>
+      <div class="flex" style="margin-top:8px">
+        <button class="btn alt" id="btnSaveCfg">Save Settings</button>
+        <button class="btn alt" id="btnLoadCfg">Load Saved</button>
+        <button class="btn alt" id="btnAirdrop">Airdrop 1 SOL</button>
+        <span id="balance" class="pill">Balance: —</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 12px">Set Global Authority</h2>
+      <div class="row3">
+        <div>
+          <label>Instruction name</label>
+          <select id="globalIxName">
+            <option>set_global_authority</option>
+            <option>set_global</option>
+            <option>set_authority</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <input id="globalIxCustom" placeholder="Custom instruction name" style="display:none;margin-top:8px" />
+        </div>
+        <div>
+          <label>Arg mode</label>
+          <select id="globalArgMode">
+            <option value="none">No args</option>
+            <option value="pubkey">One Pubkey arg (new_global)</option>
+          </select>
+        </div>
+        <div>
+          <label id="globalArgLabel" style="display:none">New Global Pubkey</label>
+          <input id="globalArgValue" placeholder="Paste pubkey" style="display:none" />
+        </div>
+      </div>
+      <details style="margin-top:10px">
+        <summary>Additional Accounts (optional)</summary>
+        <div id="globalAccounts"></div>
+        <button class="btn alt" id="addGlobalAcct" style="margin-top:8px">+ Add Account</button>
+      </details>
+      <button class="btn" id="btnSendGlobal" style="margin-top:12px">Send Global Instruction</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 12px">Set Executor</h2>
+      <div class="row3">
+        <div>
+          <label>Instruction name</label>
+          <select id="execIxName">
+            <option>set_executor</option>
+            <option>set_executor_pubkey</option>
+            <option>set_operator</option>
+            <option value="custom">Custom…</option>
+          </select>
+          <input id="execIxCustom" placeholder="Custom instruction name" style="display:none;margin-top:8px" />
+        </div>
+        <div>
+          <label>Arg mode</label>
+          <select id="execArgMode">
+            <option value="pubkey">One Pubkey arg (executor)</option>
+            <option value="none">No args</option>
+          </select>
+        </div>
+        <div>
+          <label id="execArgLabel">Executor Pubkey</label>
+          <input id="execArgValue" placeholder="Paste pubkey" />
+        </div>
+      </div>
+      <details style="margin-top:10px">
+        <summary>Additional Accounts (optional)</summary>
+        <div id="execAccounts"></div>
+        <button class="btn alt" id="addExecAcct" style="margin-top:8px">+ Add Account</button>
+      </details>
+      <button class="btn" id="btnSendExec" style="margin-top:12px">Send Executor Instruction</button>
+    </div>
+
+    <div class="card">
+      <h2 style="margin:0 0 12px">Advanced: Custom Instruction</h2>
+      <div class="row">
+        <div>
+          <label>Instruction name (for discriminator)</label>
+          <input id="advIxName" placeholder="e.g. set_whitelist" />
+        </div>
+        <div>
+          <label>Data (base64, appended after discriminator)</label>
+          <input id="advData" placeholder="optional base64 data payload" />
+        </div>
+      </div>
+      <div>
+        <label>Accounts</label>
+        <div id="advAccounts"></div>
+        <button class="btn alt" id="addAdvAcct" style="margin-top:8px">+ Add Account</button>
+      </div>
+      <button class="btn" id="btnSendAdv" style="margin-top:12px">Send Custom Instruction</button>
+      <small class="muted">Anchor discriminator = first 8 bytes of SHA-256("global:" + name).</small>
+    </div>
+
+    <div class="card">
+      <div class="flex"><b>Logs</b><button class="btn alt right" id="btnClear">Clear</button></div>
+      <pre id="log"></pre>
+    </div>
+
+    <div class="muted" style="margin:8px 0 24px">
+      <b>How to run locally:</b> place this file anywhere (e.g., <code>ui/devnet-panel/index.html</code>) and open it directly in your browser <i>or</i> serve it:
+      <ul>
+        <li>Python: <code>python3 -m http.server</code> then open <code>http://localhost:8000/ui/devnet-panel/index.html</code></li>
+        <li>VS Code Live Server: Right-click file → "Open with Live Server"</li>
+      </ul>
+      Requires <b>Phantom</b> in your browser.
+    </div>
+  </div>
+
+  <script type="module">
+    import {Connection, PublicKey, SystemProgram, Transaction, TransactionInstruction, clusterApiUrl} from "https://unpkg.com/@solana/web3.js@1.95.3/lib/index.browser.esm.js";
+
+    const $ = (id)=>document.getElementById(id);
+    const log = (m)=>{ const el=$("log"); el.textContent += (typeof m==="string"? m : JSON.stringify(m,null,2)) + "\n"; el.scrollTop = el.scrollHeight; };
+
+    const state = {
+      connection: null,
+      wallet: null,
+      programId: null,
+    };
+
+    const phantom = window.solana;
+    const ensurePhantom = ()=>{
+      if(!phantom || !phantom.isPhantom){ alert("Phantom not found. Install Phantom wallet."); throw new Error("No Phantom"); }
+      return phantom;
+    };
+
+    function getRpc(){
+      const v = $("rpc").value;
+      if(v === "custom") return $("rpcCustom").value.trim();
+      return v;
+    }
+
+    async function refreshConn(){
+      const url = getRpc();
+      state.connection = new Connection(url, "confirmed");
+      $("clusterStatus").textContent = `Cluster: ${url.includes("devnet")?"devnet":"custom"}`;
+    }
+
+    function setWalletStatus(){
+      const w = state.wallet; const el=$("walletStatus");
+      if(!w){ el.innerHTML = 'Wallet: <span class="muted">not connected</span>'; return; }
+      el.innerHTML = `Wallet: <b>${w.publicKey.toBase58().slice(0,4)}…${w.publicKey.toBase58().slice(-4)}</b>`;
+    }
+
+    function setBalance(bal){ $("balance").textContent = `Balance: ${ (bal/1e9).toFixed(4) } SOL`; }
+
+    async function fetchBalance(){
+      if(!state.wallet || !state.connection) return;
+      const lam = await state.connection.getBalance(state.wallet.publicKey);
+      setBalance(lam);
+    }
+
+    function setProgramId(){
+      const v = $("programId").value.trim();
+      if(!v) throw new Error("Program ID is required");
+      state.programId = new PublicKey(v);
+    }
+
+    function parsePubkey(inp){ try { return new PublicKey(inp.trim()); } catch(e){ throw new Error("Invalid pubkey: "+inp); } }
+
+    async function derivePda(){
+      try{
+        setProgramId();
+        const s1 = $("seed1").value.trim();
+        const s2 = $("seed2").value.trim();
+        const seeds=[];
+        const enc = new TextEncoder();
+        if(s1){
+          // Allow either utf8 or base58 pubkey
+          try { seeds.push(parsePubkey(s1).toBytes()); } catch { seeds.push(enc.encode(s1)); }
+        }
+        if(s2){
+          try { seeds.push(parsePubkey(s2).toBytes()); } catch { seeds.push(enc.encode(s2)); }
+        }
+        const [pda] = PublicKey.findProgramAddressSync(seeds, state.programId);
+        $("configPda").value = pda.toBase58();
+        log(`Derived PDA: ${pda.toBase58()}`);
+      }catch(e){ log(e.message); }
+    }
+
+    async function connectWallet(){
+      ensurePhantom();
+      const res = await phantom.connect();
+      state.wallet = res.publicKey ? { publicKey: res.publicKey } : phantom;
+      setWalletStatus();
+      await refreshConn();
+      await fetchBalance();
+    }
+
+    async function airdrop(){
+      if(!state.wallet) return alert("Connect wallet first");
+      await refreshConn();
+      const sig = await state.connection.requestAirdrop(state.wallet.publicKey, 1e9);
+      await state.connection.confirmTransaction(sig, "confirmed");
+      log(`Airdrop tx: ${sig}`);
+      await fetchBalance();
+    }
+
+    function buildAccountMetaRow(container){
+      const row = document.createElement('div');
+      row.className='row';
+      row.style.marginTop='8px';
+      row.innerHTML = `
+        <input placeholder="Account pubkey" />
+        <div class="row">
+          <label><input type="checkbox" class="signer" /> signer</label>
+          <label><input type="checkbox" class="writable" /> writable</label>
+        </div>`;
+      container.appendChild(row);
+      return row;
+    }
+
+    function collectAccounts(extraContainerId){
+      const metas = [];
+      const cfg = $("configPda").value.trim();
+      if(cfg){ metas.push({pubkey: parsePubkey(cfg), isSigner:false, isWritable:true}); }
+      // Always include payer as signer
+      metas.push({pubkey: state.wallet.publicKey, isSigner:true, isWritable:true});
+      // Optional: system program (some programs require)
+      metas.push({pubkey: SystemProgram.programId, isSigner:false, isWritable:false});
+      // Extras
+      const container = $(extraContainerId);
+      Array.from(container.children).forEach(row=>{
+        const [pkInput, toggles] = row.querySelectorAll('input');
+        const pk = pkInput.value.trim(); if(!pk) return;
+        const isSigner = row.querySelector('.signer').checked;
+        const isWritable = row.querySelector('.writable').checked;
+        metas.push({pubkey: parsePubkey(pk), isSigner, isWritable});
+      });
+      return metas;
+    }
+
+    async function discriminator(name){
+      const enc = new TextEncoder();
+      const data = enc.encode('global:'+name);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return new Uint8Array(hash).slice(0,8);
+    }
+
+    function u8merge(...arrs){
+      const len = arrs.reduce((a,b)=>a+b.length,0);
+      const out = new Uint8Array(len);
+      let o=0; for(const a of arrs){ out.set(a,o); o+=a.length; }
+      return out;
+    }
+
+    async function sendIx(name, accounts, argMode, argValue){
+      setProgramId();
+      const disc = await discriminator(name);
+      let data = disc;
+      if(argMode === 'pubkey' && argValue){
+        const key = parsePubkey(argValue);
+        data = u8merge(disc, key.toBytes());
+      }
+      const ix = new TransactionInstruction({ programId: state.programId, keys: accounts, data });
+      const tx = new Transaction().add(ix);
+      tx.feePayer = state.wallet.publicKey;
+      const { blockhash } = await state.connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = blockhash;
+      const signed = await phantom.signTransaction(tx);
+      const sig = await state.connection.sendRawTransaction(signed.serialize());
+      log(`Sent: ${sig}`);
+      const conf = await state.connection.confirmTransaction(sig, 'confirmed');
+      log(conf);
+      await fetchBalance();
+    }
+
+    async function sendCustom(name, b64data, accounts){
+      setProgramId();
+      const disc = await discriminator(name);
+      const extra = b64data ? Uint8Array.from(atob(b64data), c=>c.charCodeAt(0)) : new Uint8Array();
+      const data = u8merge(disc, extra);
+      const ix = new TransactionInstruction({ programId: state.programId, keys: accounts, data });
+      const tx = new Transaction().add(ix);
+      tx.feePayer = state.wallet.publicKey;
+      const { blockhash } = await state.connection.getLatestBlockhash('confirmed');
+      tx.recentBlockhash = blockhash;
+      const signed = await phantom.signTransaction(tx);
+      const sig = await state.connection.sendRawTransaction(signed.serialize());
+      log(`Sent: ${sig}`);
+      const conf = await state.connection.confirmTransaction(sig, 'confirmed');
+      log(conf);
+      await fetchBalance();
+    }
+
+    // UI wiring
+    $("btnConnect").onclick = connectWallet;
+    $("rpc").onchange = (e)=>{ $("rpcCustom").style.display = e.target.value==='custom' ? '' : 'none'; refreshConn(); };
+    $("btnDerivePda").onclick = derivePda;
+    $("btnAirdrop").onclick = airdrop;
+
+    $("btnSaveCfg").onclick = ()=>{
+      const cfg = {
+        rpc: $("rpc").value, rpcCustom: $("rpcCustom").value,
+        programId: $("programId").value, configPda: $("configPda").value
+      };
+      localStorage.setItem('devnetPanelCfg', JSON.stringify(cfg));
+      log('Saved settings.');
+    };
+    $("btnLoadCfg").onclick = ()=>{
+      const raw = localStorage.getItem('devnetPanelCfg');
+      if(!raw) return;
+      const cfg = JSON.parse(raw);
+      $("rpc").value = cfg.rpc || 'https://api.devnet.solana.com';
+      $("rpcCustom").value = cfg.rpcCustom || '';
+      $("programId").value = cfg.programId || '';
+      $("configPda").value = cfg.configPda || '';
+      $("rpcCustom").style.display = $("rpc").value==='custom' ? '' : 'none';
+      refreshConn();
+      log('Loaded settings.');
+    };
+
+    // Dynamic account rows
+    $("addGlobalAcct").onclick = ()=> buildAccountMetaRow($("globalAccounts"));
+    $("addExecAcct").onclick = ()=> buildAccountMetaRow($("execAccounts"));
+    $("addAdvAcct").onclick = ()=> buildAccountMetaRow($("advAccounts"));
+
+    // Arg mode toggles
+    $("globalArgMode").onchange = (e)=>{
+      const on = e.target.value==='pubkey';
+      $("globalArgLabel").style.display = on? '' : 'none';
+      $("globalArgValue").style.display = on? '' : 'none';
+    };
+
+    $("execArgMode").onchange = (e)=>{
+      const on = e.target.value==='pubkey';
+      $("execArgLabel").style.display = on? '' : 'none';
+      $("execArgValue").style.display = on? '' : 'none';
+    };
+
+    function ixName(selectId, customId){
+      const sel = $(selectId); const val = sel.value;
+      if(val==='custom'){ return $(customId).value.trim(); }
+      return val;
+    }
+
+    $("btnSendGlobal").onclick = async ()=>{
+      try{
+        if(!state.wallet) await connectWallet();
+        await refreshConn();
+        const name = ixName('globalIxName','globalIxCustom');
+        if(!name) throw new Error('Instruction name required');
+        const argMode = $("globalArgMode").value;
+        const argVal = $("globalArgValue").value.trim();
+        const accounts = collectAccounts('globalAccounts');
+        await sendIx(name, accounts, argMode, argVal);
+      }catch(e){ log(e.message||e); }
+    };
+
+    $("btnSendExec").onclick = async ()=>{
+      try{
+        if(!state.wallet) await connectWallet();
+        await refreshConn();
+        const name = ixName('execIxName','execIxCustom');
+        if(!name) throw new Error('Instruction name required');
+        const argMode = $("execArgMode").value;
+        const argVal = $("execArgValue").value.trim();
+        const accounts = collectAccounts('execAccounts');
+        await sendIx(name, accounts, argMode, argVal);
+      }catch(e){ log(e.message||e); }
+    };
+
+    $("btnSendAdv").onclick = async ()=>{
+      try{
+        if(!state.wallet) await connectWallet();
+        await refreshConn();
+        const name = $("advIxName").value.trim();
+        if(!name) throw new Error('Instruction name required');
+        const b64 = $("advData").value.trim();
+        const accounts = collectAccounts('advAccounts');
+        await sendCustom(name, b64, accounts);
+      }catch(e){ log(e.message||e); }
+    };
+
+    $("btnClear").onclick = ()=> $("log").textContent='';
+
+    // UX defaults
+    $("btnLoadCfg").click();
+    refreshConn();
+  </script>
+</body>
+</html>

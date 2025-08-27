@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Solana Devnet Control Panel — Flash Executor (v2 dual-CDN)</title>
+  <style>
+    :root{--bg:#0f1221;--card:#171a2e;--ink:#e8eaf6;--muted:#9aa3b2;--acc:#7aa2ff;--bad:#ff5d5d;--good:#36d399}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 ui-sans-serif,system-ui,Segoe UI,Roboto,Arial}
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    h1{font-size:24px;margin:0 0 10px}
+    h2{font-size:18px;margin:24px 0 10px;color:var(--acc)}
+    p, label{color:var(--muted)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:var(--card);border:1px solid #242845;border-radius:14px;padding:16px;box-shadow:0 1px 0 rgba(0,0,0,.2)}
+    input, select, textarea, button{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2b2f4a;background:#0d1022;color:var(--ink);outline:none}
+    input::placeholder, textarea::placeholder{color:#6b7280}
+    textarea{min-height:140px;resize:vertical}
+    button{cursor:pointer;background:#1b2040;border-color:#2e3563}
+    button:hover{background:#222750}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#0b0f24;border:1px solid #22284d;color:#c9d2f0;font-size:12px}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
+    .ok{color:var(--good)} .bad{color:var(--bad)}
+    .tx{border-left:3px solid #2f3563;padding-left:10px;margin:8px 0}
+    .hint{font-size:12px;color:#96a0b8}
+    .inline{display:flex;gap:8px;align-items:center}
+    .small{font-size:12px}
+    .hr{height:1px;background:#262a45;margin:14px 0}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>⚡ Flash Executor — Devnet Control Panel <span class="pill mono">LIVE • no mocks</span></h1>
+  <p class="hint" id="banner">Loading modules…</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>RPC Cluster</label>
+        <div class="inline">
+          <select id="rpc">
+            <option value="https://api.devnet.solana.com" selected>https://api.devnet.solana.com</option>
+          </select>
+          <button id="ping">Ping</button>
+        </div>
+        <div class="mt8 small">Status: <span id="rpcStatus" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Program ID</label>
+        <input id="programId" class="mono" value="9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn"/>
+        <div class="mt8 small">Loaded from your contract: <span class="mono">declare_id!(…)</span></div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="row">
+      <div>
+        <button id="connect">Connect Phantom</button>
+        <div class="mt8 small">Wallet: <span id="wallet" class="mono">—</span></div>
+      </div>
+      <div>
+        <div class="inline">
+          <button id="airdrop">Airdrop 1 SOL</button>
+          <button id="balance">Refresh Balance</button>
+        </div>
+        <div class="mt8 small">Balance: <span id="bal" class="mono">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>1) Global Config</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Existing Global Account (optional)</label>
+        <input id="globalAddr" placeholder="If already created, paste address. Otherwise create new below." class="mono"/>
+        <div class="inline mt8">
+          <button id="fetchGlobal">Fetch</button>
+          <button id="downloadGlobal">Download Global Keypair</button>
+        </div>
+        <div class="mt8 small">Owner (from Global): <span id="globalOwner" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Create New Global</label>
+        <div class="inline">
+          <button id="createGlobal">Generate Keypair</button>
+          <button id="initGlobal">Initialize On-Chain</button>
+        </div>
+        <div class="mt8 small">New Global Addr: <span id="newGlobalAddr" class="mono">—</span></div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="row">
+      <div>
+        <label>Add/Remove Executor</label>
+        <input id="execKey" placeholder="Executor pubkey" class="mono"/>
+        <div class="inline mt8">
+          <button id="addExec">Add</button><button id="removeExec">Remove</button>
+        </div>
+      </div>
+      <div>
+        <label>Add/Remove DEX Program Whitelist</label>
+        <input id="dexProg" placeholder="DEX program id (e.g. Raydium/Orca devnet pid)" class="mono"/>
+        <div class="inline mt8">
+          <button id="addDex">Add</button><button id="removeDex">Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>2) Pool & Vault</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Mint Address</label>
+        <input id="mint" placeholder="Token mint (devnet)" class="mono"/>
+        <div class="mt8 small">Token Program: <span id="whichTokenProg" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Pool Params</label>
+        <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div><input id="minBps" type="number" value="30"/><div class="hint">min_profit_bps</div></div>
+          <div><input id="poolEnabled" type="checkbox" checked/> <span>enabled</span></div>
+          <div><button id="derivePdas">Derive PDAs</button></div>
+        </div>
+        <div class="mt8 small">Pool PDA: <span id="poolPda" class="mono">—</span></div>
+        <div class="mt8 small">Vault Authority PDA: <span id="vaultAuth" class="mono">—</span></div>
+        <div class="mt8 small">Vault ATA: <span id="vaultAta" class="mono">—</span></div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="row">
+      <div>
+        <label>Vault</label>
+        <div class="inline">
+          <button id="createVaultAta">Create Vault ATA</button>
+          <button id="vaultBal">Vault Balance</button>
+        </div>
+        <div class="mt8 small">Vault Amount: <span id="vaultAmount" class="mono">—</span></div>
+      </div>
+      <div>
+        <label>Create / Update Pool</label>
+        <div class="inline">
+          <button id="createPool">Create Pool</button>
+          <button id="setPool">Set Params</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>3) Execute Route</h2>
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Principal (u64, token base units)</label>
+        <input id="principal" value="1000000" class="mono"/>
+      </div>
+      <div>
+        <label>Compute Budget (optional)</label>
+        <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          <div><input id="cuLimit" type="number" value="1200000"/><div class="hint">units</div></div>
+          <div><input id="cuPrice" type="number" value="0"/><div class="hint">microlamports</div></div>
+          <div><button id="execute">Execute Route</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <label>Route JSON</label>
+    <textarea id="route" class="mono" placeholder='[
+  {
+    "programId": "DEX_PROGRAM_ID",
+    "metas": [
+      {"pubkey":"...","isSigner":false,"isWritable":true},
+      {"pubkey":"...","isSigner":false,"isWritable":false}
+    ],
+    "data": "hex-encoded-cpi-data"
+  }
+]'></textarea>
+    <div class="hint">Each step must target a whitelisted DEX program.</div>
+  </div>
+
+  <h2>4) DEX Program Verifier (Devnet)</h2>
+  <div class="card">
+    <label>Paste program IDs (one per line)</label>
+    <textarea id="dexList" class="mono" placeholder="whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc
+675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"></textarea>
+    <div class="inline mt8">
+      <button id="verifyDex">Verify on-chain</button>
+    </div>
+    <div class="mt8 small">Results: <span id="dexResults" class="mono">—</span></div>
+  </div>
+
+  <h2>TX Log</h2>
+  <div class="card" id="log"></div>
+</div>
+
+<script type="module">
+const banner = document.getElementById('banner');
+async function loadMod(urls){
+  for(const u of urls){
+    try{ return await import(u); }catch(e){ /* try next */ }
+  }
+  throw new Error('all imports failed: '+urls.join(', '));
+}
+let web3, spl, sha;
+try{
+  web3 = await loadMod([
+    'https://cdn.jsdelivr.net/npm/@solana/web3.js@1.95.3/+esm',
+    'https://unpkg.com/@solana/web3.js@1.95.3?module'
+  ]);
+  spl = await loadMod([
+    'https://cdn.jsdelivr.net/npm/@solana/spl-token@0.4.7/+esm',
+    'https://unpkg.com/@solana/spl-token@0.4.7?module'
+  ]);
+  const shaMod = await loadMod([
+    'https://cdn.jsdelivr.net/npm/js-sha256@0.9.0/+esm',
+    'https://unpkg.com/js-sha256@0.9.0?module'
+  ]);
+  const sha256 = shaMod.sha256 || shaMod.default || shaMod;
+  banner.textContent = 'Modules loaded.';
+
+  // helpers
+  const $ = (id) => document.getElementById(id);
+  const logDiv = $('log');
+  function log(msg, ok=true) {
+    const el = document.createElement('div');
+    el.className = 'tx';
+    el.innerHTML = ok ? msg : '<span style="color:#ff5d5d">'+msg+'</span>';
+    logDiv.prepend(el);
+  }
+  function exLink(sig){ return `<a class="mono" target="_blank" href="https://explorer.solana.com/tx/${sig}?cluster=devnet">${sig}</a>`; }
+  function addrLink(pk){ return `<a class="mono" target="_blank" href="https://explorer.solana.com/address/${pk}?cluster=devnet">${pk}</a>`; }
+
+  // connection/wallet
+  let conn = new web3.Connection($('rpc').value, { commitment: 'confirmed' });
+  let programId = new web3.PublicKey($('programId').value);
+  let walletPubkey = null;
+  function getPhantom(){
+    return (window.phantom && window.phantom.solana) ? window.phantom.solana :
+           (window.solana && window.solana.isPhantom ? window.solana : null);
+  }
+  $('rpc').addEventListener('change', () => {
+    conn = new web3.Connection($('rpc').value, { commitment: 'confirmed' });
+    log('RPC changed.');
+  });
+  $('ping').onclick = async () => {
+    try{ const v = await conn.getVersion(); $('rpcStatus').textContent = 'ok '+JSON.stringify(v); }
+    catch(e){ $('rpcStatus').textContent = 'error'; log('RPC error: '+e.message, false); }
+  };
+  $('connect').onclick = async () => {
+    try{
+      const provider = getPhantom();
+      if (!provider) throw new Error('Phantom not detected — open v4 connect-first page to confirm wallet injection.');
+      const res = await provider.connect({ onlyIfTrusted: false });
+      walletPubkey = new web3.PublicKey(res.publicKey.toString());
+      $('wallet').innerHTML = addrLink(walletPubkey.toBase58());
+      const lam = await conn.getBalance(walletPubkey);
+      $('bal').textContent = (lam/1e9).toFixed(4)+' SOL';
+      log('Wallet connected.');
+    }catch(e){ log('Connect failed: '+e.message, false); }
+  };
+  $('balance').onclick = async ()=>{
+    if(!walletPubkey) return;
+    const lam = await conn.getBalance(walletPubkey);
+    $('bal').textContent = (lam/1e9).toFixed(4)+' SOL';
+  };
+  $('airdrop').onclick = async () => {
+    try{
+      if(!walletPubkey) throw new Error('Connect wallet first');
+      const sig = await conn.requestAirdrop(walletPubkey, 1e9);
+      await conn.confirmTransaction(sig, 'confirmed');
+      const lam = await conn.getBalance(walletPubkey);
+      $('bal').textContent = (lam/1e9).toFixed(4)+' SOL';
+      log('Airdrop tx: '+exLink(sig));
+    }catch(e){ log('Airdrop failed: '+e.message, false); }
+  };
+  $('programId').addEventListener('input', (e)=>{ try{ programId = new web3.PublicKey(e.target.value.trim()); }catch{} });
+
+  // encoding utils
+  function disc(name){ const preimage='global:'+name; const h=sha256.array(preimage); return Uint8Array.from(h.slice(0,8)); }
+  function u8(n){ return Uint8Array.of(n & 0xff); }
+  function u16le(n){ return new Uint8Array([n & 255, (n>>8) & 255]); }
+  function u32le(n){ return new Uint8Array([n & 255, (n>>8)&255, (n>>16)&255, (n>>24)&255]); }
+  function u64le(n){ const b=BigInt(n); const a=new Uint8Array(8); let x=b; for(let i=0;i<8;i++){ a[i]=Number(x&0xffn); x>>=8n;} return a; }
+  function pkBytes(pubkey){ return new web3.PublicKey(pubkey).toBytes(); }
+  function concat(...arrs){ let total=0; for(const a of arrs) total+=a.length; const out=new Uint8Array(total); let off=0; for(const a of arrs){ out.set(a,off); off+=a.length;} return out; }
+  function vecU8(bytes){ return concat(u32le(bytes.length), bytes); }
+  function encodeWireMeta(m){ return concat(pkBytes(m.pubkey), u8(m.isSigner?1:0), u8(m.isWritable?1:0)); }
+  function encodeVec(items, encFn){ const parts=items.map(encFn); const len=parts.reduce((s,x)=>s+x.length,0); const buf=new Uint8Array(len); let off=0; for(const p of parts){ buf.set(p,off); off+=p.length;} return concat(u32le(items.length), buf); }
+  function hexToBytes(hex){ const s=(hex||'').replace(/^0x/,'').trim(); if(s.length===0) return new Uint8Array(); if(s.length%2!==0) throw new Error('hex length must be even'); const out=new Uint8Array(s.length/2); for(let i=0;i<out.length;i++){ out[i]=parseInt(s.slice(2*i,2*i+2),16);} return out; }
+  function encodeSerIx(ix){ const metas=encodeVec(ix.metas||[], encodeWireMeta); const dataBytes=hexToBytes(ix.data||''); return concat(pkBytes(ix.programId), metas, vecU8(dataBytes)); }
+  function encodeRoute(route){ return encodeVec(route, encodeSerIx); }
+
+  const { getAssociatedTokenAddress, createAssociatedTokenAccountInstruction, ASSOCIATED_TOKEN_PROGRAM_ID, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } = spl;
+  async function getTokenProgramForMint(mintPk){
+    const acc = await conn.getAccountInfo(mintPk);
+    if(!acc) throw new Error('Mint not found');
+    const owner = acc.owner.toBase58();
+    if(owner === TOKEN_2022_PROGRAM_ID.toBase58()){ $('whichTokenProg').textContent='Token-2022'; return TOKEN_2022_PROGRAM_ID; }
+    $('whichTokenProg').textContent='Token (legacy)'; return TOKEN_PROGRAM_ID;
+  }
+  function derivePoolPda(mintPk, ownerPk){
+    const [pda] = web3.PublicKey.findProgramAddressSync([Buffer.from('pool'), mintPk.toBytes(), ownerPk.toBytes()], programId);
+    return pda;
+  }
+  function deriveVaultAuthPda(poolPda){
+    const [pda,_bump] = web3.PublicKey.findProgramAddressSync([Buffer.from('vault_auth'), poolPda.toBytes()], programId);
+    return pda;
+  }
+
+  let cached = { poolPda:null, vaultAuth:null, vaultAta:null, tokenProgramId:null };
+  $('derivePdas').onclick = async ()=>{
+    try{
+      const provider = getPhantom();
+      const owner = new web3.PublicKey(provider.publicKey.toString());
+      const mint = new web3.PublicKey($('mint').value.trim());
+      const tokenProg = await getTokenProgramForMint(mint);
+      cached.tokenProgramId = tokenProg;
+      const pool = derivePoolPda(mint, owner);
+      const vAuth = deriveVaultAuthPda(pool);
+      const ata = await getAssociatedTokenAddress(mint, vAuth, true, tokenProg, ASSOCIATED_TOKEN_PROGRAM_ID);
+      cached.poolPda = pool; cached.vaultAuth = vAuth; cached.vaultAta = ata;
+      $('poolPda').textContent = pool.toBase58();
+      $('vaultAuth').textContent = vAuth.toBase58();
+      $('vaultAta').textContent = ata.toBase58();
+      log('Derived PDAs.');
+    }catch(e){ log('derivePdas failed: '+e.message, false); }
+  };
+
+  async function sendIx(ix, extraSigners=[]){
+    const provider = getPhantom();
+    if(!provider) throw new Error('Phantom not detected');
+    const feePayer = new web3.PublicKey(provider.publicKey.toString());
+    const tx = new web3.Transaction().add(ix);
+    const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+    tx.recentBlockhash = blockhash; tx.feePayer = feePayer;
+    if(extraSigners.length) tx.partialSign(...extraSigners);
+    const signed = await provider.signTransaction(tx);
+    const sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight:false });
+    await conn.confirmTransaction({ signature:sig, blockhash, lastValidBlockHeight }, 'confirmed');
+    return sig;
+  }
+
+  $('createVaultAta').onclick = async ()=>{
+    try{
+      const provider = getPhantom();
+      if(!cached.vaultAta) throw new Error('Derive PDAs first');
+      const mint = new web3.PublicKey($('mint').value.trim());
+      const feePayer = new web3.PublicKey(provider.publicKey.toString());
+      const ix = createAssociatedTokenAccountInstruction(
+        feePayer, cached.vaultAta, cached.vaultAuth, mint,
+        ASSOCIATED_TOKEN_PROGRAM_ID, cached.tokenProgramId
+      );
+      const sig = await sendIx(ix);
+      log('Create Vault ATA: '+exLink(sig));
+    }catch(e){ if(String(e).includes('already in use')){ log('Vault ATA already exists (ok).'); } else { log('createVaultAta failed: '+e.message, false); } }
+  };
+  $('vaultBal').onclick = async ()=>{
+    try{
+      if(!cached.vaultAta) throw new Error('Derive PDAs first');
+      const acc = await conn.getTokenAccountBalance(cached.vaultAta);
+      $('vaultAmount').textContent = acc?.value?.amount ?? '0';
+    }catch(e){ log('vaultBal failed: '+e.message, false); }
+  };
+  $('createPool').onclick = async ()=>{
+    try{
+      const provider = getPhantom();
+      const g = new web3.PublicKey($('globalAddr').value.trim());
+      const owner = new web3.PublicKey(provider.publicKey.toString());
+      const mint = new web3.PublicKey($('mint').value.trim());
+      const minBps = parseInt($('minBps').value,10) || 0;
+      if(!cached.poolPda || !cached.vaultAuth || !cached.vaultAta) throw new Error('Derive PDAs first');
+      const data = new Uint8Array([...disc('create_pool'), ...u16le(minBps)]);
+      const keys = [
+        { pubkey: g, isSigner:false, isWritable:true },
+        { pubkey: cached.poolPda, isSigner:false, isWritable:true },
+        { pubkey: owner, isSigner:true, isWritable:true },
+        { pubkey: mint, isSigner:false, isWritable:false },
+        { pubkey: cached.vaultAuth, isSigner:false, isWritable:false },
+        { pubkey: cached.vaultAta, isSigner:false, isWritable:true },
+        { pubkey: cached.tokenProgramId, isSigner:false, isWritable:false },
+        { pubkey: web3.SystemProgram.programId, isSigner:false, isWritable:false },
+      ];
+      const ix = new web3.TransactionInstruction({ programId, keys, data });
+      const sig = await sendIx(ix);
+      log('Create Pool: '+exLink(sig));
+    }catch(e){ log('createPool failed: '+e.message, false); }
+  };
+  $('setPool').onclick = async ()=>{
+    try{
+      const g = new web3.PublicKey($('globalAddr').value.trim());
+      const minBps = parseInt($('minBps').value,10) || 0;
+      const enabled = $('poolEnabled').checked;
+      if(!cached.poolPda) throw new Error('Derive PDAs first');
+      const data = new Uint8Array([...disc('set_pool_params'), ...u16le(minBps), ...(enabled?Uint8Array.of(1):Uint8Array.of(0))]);
+      const keys = [
+        { pubkey: g, isSigner:false, isWritable:true },
+        { pubkey: cached.poolPda, isSigner:false, isWritable:true },
+        { pubkey: new web3.PublicKey(getPhantom().publicKey.toString()), isSigner:true, isWritable:true },
+      ];
+      const ix = new web3.TransactionInstruction({ programId, keys, data });
+      const sig = await sendIx(ix);
+      log('Set Pool Params: '+exLink(sig));
+    }catch(e){ log('setPool failed: '+e.message, false); }
+  };
+  $('execute').onclick = async ()=>{
+    try{
+      if(!cached.poolPda || !cached.vaultAuth || !cached.vaultAta) throw new Error('Derive PDAs first');
+      const principal = BigInt($('principal').value.trim());
+      let route; try{ route = JSON.parse($('route').value.trim() || '[]'); }catch{ throw new Error('Invalid JSON'); }
+      if(!Array.isArray(route)) throw new Error('Route must be an array');
+      function encodeSerIx(ix){
+        const metas = encodeVec(ix.metas || [], encodeWireMeta);
+        const dataBytes = hexToBytes(ix.data || '');
+        return concat(pkBytes(ix.programId), metas, vecU8(dataBytes));
+      }
+      const data = concat(disc('execute_route'), u64le(principal), encodeVec(route, encodeSerIx));
+      const keys = [
+        { pubkey: new web3.PublicKey($('globalAddr').value.trim()), isSigner:false, isWritable:true },
+        { pubkey: cached.poolPda, isSigner:false, isWritable:true },
+        { pubkey: cached.vaultAuth, isSigner:false, isWritable:false },
+        { pubkey: cached.vaultAta, isSigner:false, isWritable:true },
+        { pubkey: new web3.PublicKey(getPhantom().publicKey.toString()), isSigner:true, isWritable:true },
+        { pubkey: cached.tokenProgramId, isSigner:false, isWritable:false },
+      ];
+      for(const k of keys.slice(0)) keys.push({ ...k });
+      for(const step of route){
+        keys.push({ pubkey:new web3.PublicKey(step.programId), isSigner:false, isWritable:false });
+        for(const m of (step.metas||[])){
+          keys.push({ pubkey:new web3.PublicKey(m.pubkey), isSigner:!!m.isSigner, isWritable:!!m.isWritable });
+        }
+      }
+      const lim = parseInt($('cuLimit').value,10)||0;
+      const price = parseInt($('cuPrice').value,10)||0;
+      const tx = new web3.Transaction();
+      if(lim>0) tx.add(web3.ComputeBudgetProgram.setComputeUnitLimit({ units: lim }));
+      if(price>0) tx.add(web3.ComputeBudgetProgram.setComputeUnitPrice({ microLamports: price }));
+      const ix = new web3.TransactionInstruction({ programId, keys, data });
+      tx.add(ix);
+      const provider = getPhantom();
+      const { blockhash, lastValidBlockHeight } = await conn.getLatestBlockhash();
+      tx.recentBlockhash = blockhash; tx.feePayer = new web3.PublicKey(provider.publicKey.toString());
+      const signed = await provider.signTransaction(tx);
+      const sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight:false });
+      await conn.confirmTransaction({ signature:sig, blockhash, lastValidBlockHeight }, 'confirmed');
+      log('Execute Route: '+exLink(sig));
+    }catch(e){ log('execute failed: '+e.message, false); }
+  };
+  $('verifyDex').onclick = async ()=>{
+    try{
+      const list = $('dexList').value.split(/[\r\n]+/).map(s=>s.trim()).filter(Boolean);
+      if(list.length===0){ $('dexResults').textContent = 'No program IDs provided.'; return; }
+      const results = [];
+      for(const id of list){
+        try{
+          const info = await conn.getAccountInfo(new web3.PublicKey(id));
+          if(!info){ results.push(`${id}: NOT FOUND`); continue; }
+          results.push(`${id}: owner=${info.owner.toBase58()} executable=${info.executable} lamports=${info.lamports}`);
+        }catch(e){ results.push(`${id}: ERROR ${e.message}`); }
+      }
+      $('dexResults').innerText = results.join('\\n');
+    }catch(e){ $('dexResults').innerText = 'Verifier failed: '+e.message; }
+  };
+} catch (e) {
+  document.getElementById('banner').innerHTML = '<span style="color:#ff5d5d">Failed to load modules. '+(e.message||e)+'</span>';
+}
+</script>
+</body>
+</html>

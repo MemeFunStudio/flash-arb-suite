@@ -1,0 +1,75 @@
+{
+  "snapshot_at": "2025-08-26T04:31:03.611Z",
+  "items": [
+    {
+      "key": "TOKEN_PROGRAM",
+      "value": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+      "explorer": "https://explorer.solana.com/address/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA?cluster=devnet"
+    },
+    {
+      "key": "ASSOCIATED_TOKEN_PROGRAM",
+      "value": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+      "explorer": "https://explorer.solana.com/address/ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL?cluster=devnet"
+    },
+    {
+      "key": "SYSTEM_PROGRAM",
+      "value": "11111111111111111111111111111111",
+      "explorer": "https://explorer.solana.com/address/11111111111111111111111111111111?cluster=devnet"
+    },
+    {
+      "key": "SYSVAR_RENT",
+      "value": "SysvarRent111111111111111111111111111111111",
+      "explorer": "https://explorer.solana.com/address/SysvarRent111111111111111111111111111111111?cluster=devnet"
+    },
+    {
+      "key": "POOL",
+      "value": "JA3wnS7sJJWCapA58pD6M1VYhC7cR6Ez9uyeJABD7pz",
+      "explorer": "https://explorer.solana.com/address/JA3wnS7sJJWCapA58pD6M1VYhC7cR6Ez9uyeJABD7pz?cluster=devnet"
+    },
+    {
+      "key": "VAULT_AUTHORITY",
+      "value": "GCowHLoicbJuyLJgT4bBR1Zxjh6LjaQ3jHT81AoVRTwp",
+      "explorer": "https://explorer.solana.com/address/GCowHLoicbJuyLJgT4bBR1Zxjh6LjaQ3jHT81AoVRTwp?cluster=devnet"
+    },
+    {
+      "key": "VAULT_AUTH_BUMP",
+      "value": "255",
+      "explorer": null
+    },
+    {
+      "key": "VAULT",
+      "value": "4FZxunhyQYQJPqXGct1Vnjm7oZ19bRnDa1oxBLDDakCq",
+      "explorer": "https://explorer.solana.com/address/4FZxunhyQYQJPqXGct1Vnjm7oZ19bRnDa1oxBLDDakCq?cluster=devnet"
+    },
+    {
+      "key": "CALLER",
+      "value": "OWNER_PUBKEY_PLACEHOLDER",
+      "explorer": "https://explorer.solana.com/address/OWNER_PUBKEY_PLACEHOLDER?cluster=devnet"
+    },
+    {
+      "key": "AUTHORITY",
+      "value": "OWNER_PUBKEY_PLACEHOLDER",
+      "explorer": "https://explorer.solana.com/address/OWNER_PUBKEY_PLACEHOLDER?cluster=devnet"
+    },
+    {
+      "key": "OWNER",
+      "value": "OWNER_PUBKEY_PLACEHOLDER",
+      "explorer": "https://explorer.solana.com/address/OWNER_PUBKEY_PLACEHOLDER?cluster=devnet"
+    },
+    {
+      "key": "PROGRAM",
+      "value": "9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn",
+      "explorer": "https://explorer.solana.com/address/9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn?cluster=devnet"
+    },
+    {
+      "key": "MINT",
+      "value": "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU",
+      "explorer": "https://explorer.solana.com/address/4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU?cluster=devnet"
+    },
+    {
+      "key": "GLOBAL",
+      "value": "BAEqJ58aa2vQYpmkBaTukUYPxMu9kx1sQTmgVeoEqHKw",
+      "explorer": "https://explorer.solana.com/address/BAEqJ58aa2vQYpmkBaTukUYPxMu9kx1sQTmgVeoEqHKw?cluster=devnet"
+    }
+  ]
+}

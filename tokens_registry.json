@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "USDC",
+    "name": "USD Coin",
+    "category": "stable",
+    "decimals": { "mainnet": 6, "devnet": 6 },
+    "mint": {
+      "mainnet": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+      "devnet":  "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+    },
+    "oracles": { "pyth": null, "switchboard": null },
+    "notes": "Circle official mints on Solana; devnet is Circle test USDC."
+  },
+  {
+    "symbol": "wSOL",
+    "name": "Wrapped SOL",
+    "category": "native-wrapper",
+    "decimals": { "mainnet": 9, "devnet": 9 },
+    "mint": {
+      "mainnet": "So11111111111111111111111111111111111111112",
+      "devnet":  "So11111111111111111111111111111111111111112"
+    },
+    "oracles": { "pyth": null, "switchboard": null },
+    "notes": "wSOL (wrapped native SOL) used in SPL token routes."
+  }
+]

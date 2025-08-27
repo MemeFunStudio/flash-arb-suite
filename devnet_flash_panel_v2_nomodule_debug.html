@@ -1,0 +1,118 @@
+<!doctype html><meta charset="utf-8"/>
+<title>Flash Executor — Devnet (NO-MODULE • DEBUG)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+body{margin:0;background:#0f1221;color:#e8eaf6;font:14px ui-sans-serif,system-ui}
+.wrap{max-width:1100px;margin:0 auto;padding:20px}
+.card{background:#171a2e;border:1px solid #242845;border-radius:14px;padding:14px;margin:12px 0}
+.mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+.bad{color:#ff6b6b}.ok{color:#9ecbff}
+button,input,select,textarea{background:#0d1022;color:#e8eaf6;border:1px solid #2b2f4a;border-radius:10px;padding:9px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tx{border-left:3px solid #2f3563;padding-left:10px;margin:8px 0}
+</style>
+
+<div class="wrap">
+  <h1>⚡ Flash Executor — Devnet
+    <span class="mono" style="padding:3px 8px;border:1px solid #22284d;border-radius:999px;background:#0b0f24">
+      NO-MODULE • local web3.iife.js • LIVE • no mocks • DEBUG
+    </span>
+  </h1>
+
+  <div class="card" id="diag">
+    <b>Diagnostics</b> — JS loaded: <span id="js" class="mono">checking…</span> •
+    web3 present: <span id="w3" class="mono">–</span> •
+    errors: <span id="err" class="mono">none</span>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>RPC</label>
+        <div style="display:flex;gap:8px">
+          <select id="rpc"><option>https://api.devnet.solana.com</option></select>
+          <button id="ping">Ping</button>
+        </div>
+        <div>status: <span id="rpcStatus" class="mono">–</span></div>
+      </div>
+      <div>
+        <label>Program ID</label>
+        <input id="programId" class="mono" value="9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn"/>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px">
+      <div>
+        <button id="connect">Connect Phantom</button>
+        <div>wallet: <span id="wallet" class="mono">–</span></div>
+      </div>
+      <div>
+        <div style="display:flex;gap:8px">
+          <button id="airdrop">Airdrop 1 SOL</button>
+          <button id="balance">Refresh Balance</button>
+        </div>
+        <div>balance: <span id="bal" class="mono">–</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>TX Log</h2>
+  <div class="card" id="log"></div>
+</div>
+
+<script>
+  // surface ANY startup errors to the page
+  const set = (id, txt, cls) => { const el=document.getElementById(id); if(!el) return; el.textContent=txt; el.className=cls||''; };
+  window.addEventListener('error', e => set('err', e.message, 'bad'));
+  window.addEventListener('unhandledrejection', e => set('err', (e.reason && e.reason.message) || String(e.reason), 'bad'));
+  set('js','yes','ok');
+</script>
+<script src="./vendor/web3.iife.js?v=2"></script>
+<script>
+(function(){
+  const ok = t => '<span class="ok">'+t+'</span>';
+  const bad = t => '<span class="bad">'+t+'</span>';
+  const logDiv=document.getElementById('log');
+  const log=(m,good=true)=>{const d=document.createElement('div');d.className='tx';d.innerHTML=(good?ok(m):bad(m));logDiv.prepend(d);};
+
+  const w3 = window.solanaWeb3;
+  set('w3', w3 ? 'yes' : 'no', w3 ? 'ok' : 'bad');
+  if(!w3) return; // if web3 failed to load, bail gracefully (UI won’t freeze)
+
+  const $=id=>document.getElementById(id);
+  let conn=new w3.Connection($('rpc').value,{commitment:'confirmed'});
+  $('rpc').onchange=e=>conn=new w3.Connection(e.target.value,{commitment:'confirmed'});
+
+  $('ping').onclick=async()=>{try{
+    const v=await conn.getVersion(); $('rpcStatus').textContent='ok'; log('RPC '+JSON.stringify(v));
+  }catch(e){$('rpcStatus').textContent='error'; log('Ping failed: '+e.message,false);}}
+
+  let programId=new w3.PublicKey($('programId').value); $('programId').oninput=e=>{try{programId=new w3.PublicKey(e.target.value.trim())}catch{}};
+
+  const provider=()=> (window.phantom&&window.phantom.solana)?window.phantom.solana:((window.solana&&window.solana.isPhantom)?window.solana:null);
+  let wallet=null;
+
+  $('connect').onclick=async()=>{try{
+    const p=provider(); if(!p) throw new Error('Phantom not detected');
+    const r=await p.connect({onlyIfTrusted:false});
+    wallet=new w3.PublicKey(r.publicKey.toString());
+    $('wallet').textContent=wallet.toBase58();
+    const lam=await conn.getBalance(wallet); $('bal').textContent=(lam/1e9).toFixed(4)+' SOL';
+    log('Connected '+wallet.toBase58());
+  }catch(e){log('Connect failed: '+e.message,false);}};
+
+  $('balance').onclick=async()=>{try{
+    if(!wallet) throw new Error('Connect wallet first');
+    const lam=await conn.getBalance(wallet); $('bal').textContent=(lam/1e9).toFixed(4)+' SOL';
+  }catch(e){log('Balance failed: '+e.message,false);}};
+
+  $('airdrop').onclick=async()=>{try{
+    if(!wallet) throw new Error('Connect wallet first');
+    const sig=await conn.requestAirdrop(wallet,1e9);
+    await conn.confirmTransaction(sig,'confirmed');
+    const link=`<a target="_blank" class="mono" href="https://explorer.solana.com/tx/${sig}?cluster=devnet">${sig}</a>`;
+    log('Airdrop '+link);
+    const lam=await conn.getBalance(wallet); $('bal').textContent=(lam/1e9).toFixed(4)+' SOL';
+  }catch(e){log('Airdrop failed: '+e.message,false);}};
+})();
+</script>

@@ -1,0 +1,19 @@
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+flash_executor = "72yWXGYaoGMrtxtwfrpwfyhJwbbtbWpGsqb3GLK3pkKh"
+
+[programs.devnet]
+flash_executor = "9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn"
+
+[programs.mainnet]
+flash_executor = "72yWXGYaoGMrtxtwfrpwfyhJwbbtbWpGsqb3GLK3pkKh"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/id.json"
+
+[scripts]
+test = "mocha -t 1500000"
