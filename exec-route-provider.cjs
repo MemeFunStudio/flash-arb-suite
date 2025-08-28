@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 "use strict";
+const guard = require('./scripts/guard.cjs');
 
 const fs = require("fs");
 const os = require("os");
@@ -151,8 +152,7 @@ const execIx = new TransactionInstruction({
   tx.recentBlockhash = blockhash;
   tx.sign(payer);
 
-  const sig = await cn.sendRawTransaction(tx.serialize(), { skipPreflight: true });
-  console.log("SENT:", sig);
+  const sig = await guard.sendSafe(cn, tx, [payer], process.env, payer.publicKey.toBase58());  console.log("SENT:", sig);
   const clusterTag = /devnet/i.test(RPC) ? "devnet" : "mainnet";
   console.log("Explorer: https://explorer.solana.com/tx/" + sig + "?cluster=" + clusterTag);
 })().catch(e => {
