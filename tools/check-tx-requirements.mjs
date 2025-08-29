@@ -1,0 +1,10 @@
+import {Connection,Transaction,Keypair} from '@solana/web3.js';
+import fs from 'fs';
+const kp=Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(process.env.SOLANA_KEYPAIR,'utf8'))));
+const conn=new Connection(process.env.RPC||'https://api.devnet.solana.com','confirmed');
+const tx=new Transaction();
+tx.feePayer=kp.publicKey;
+const {blockhash}=await conn.getLatestBlockhash('confirmed');
+tx.recentBlockhash=blockhash;
+console.log('HAS_FEEPAYER='+(!!tx.feePayer));
+console.log('HAS_BLOCKHASH='+(!!tx.recentBlockhash));

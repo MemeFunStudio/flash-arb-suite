@@ -6,9 +6,3 @@ resolver = "2"
 [profile.release]
 # Required by Anchor 0.31+ for safety
 overflow-checks = true
-
-[patch.crates-io]
-solana-program = "=1.18.26"
-solana-sdk = "=1.18.26"
-solana-zk-token-sdk = "=1.18.26"
-solana-account-decoder = "=1.18.26"

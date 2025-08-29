@@ -14,10 +14,6 @@ declare_id!("9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn");
 
 #[program]
 pub mod flash_executor {
-    pub fn on_flash_loan(_ctx: Context<FlashLoanHook>) -> Result<()> {
-        Ok(())
-    }
-
     use super::*;
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -388,6 +384,3 @@ pub enum FlashError {
     #[msg("Too many whitelisted programs configured")]
     TooManyWhitelisted,
 }
-
-#[derive(Accounts)]
-pub struct FlashLoanHook<'info> { }

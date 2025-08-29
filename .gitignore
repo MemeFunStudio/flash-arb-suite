@@ -18,3 +18,13 @@ keys.json
 env/local.mainnet.env
 *.log
 snapshots/private/
+
+# ignore local env and keys
+env/*.env
+.flash-arb/
+*.key
+*.pem
+*.der
+*.p12
+*.jks
+*.tsv

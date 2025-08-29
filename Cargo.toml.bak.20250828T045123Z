@@ -1,0 +1,6 @@
+[workspace]
+members = ["programs/flash_executor"]
+
+[profile.release]
+# Required by Anchor 0.31+ for safety
+overflow-checks = true

@@ -1,5 +1,3 @@
-function validateSweepVault(acc,mint,owner){if(String(acc.owner)!==String(owner))throw new Error("SWEEP_VAULT_OWNER");if(String(acc.mint)!==String(mint))throw new Error("SWEEP_VAULT_MINT");}
-"use strict";
 const {PublicKey} = require("@solana/web3.js");
 
 async function getTokenAccountInfo(connection, account) {
@@ -75,7 +73,7 @@ async function sendSafe(connection, tx, signers, env, payerPubkey) {
   return sig;
 }
 
-module.exports={validateSweepVault,
+module.exports = {
   verifySweepVaultAta,
   resolveUsdcMint,
   requireMainnetArmed,
