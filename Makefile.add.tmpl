@@ -1,0 +1,47 @@
+.PHONY: list-candidates use-candidate mainnet-init use-candidate-mainnet sanity-mainnet
+
+list-candidates:
+__TAB__set -e; \
+__TAB__f=$$(ls -1t "$$HOME/.flash-arb/snapshots"/*.tsv | head -1); \
+__TAB__echo SNAPSHOT="$$f"; \
+__TAB__grep -iE 'clmm|raydium|pool' "$$f" | grep -oE '([1-9A-HJ-NP-Za-km-z]{32,44})' | awk '!seen[$$0]++' | head -50
+
+use-candidate:
+__TAB__set -e; \
+__TAB__test -n "$(C)"; \
+__TAB__perl -pi -e "s|^CLMM_POOL=.*$$|CLMM_POOL=$(C)|" "$(ENV)"; \
+__TAB__perl -pi -e "s|^RAY_POOL=.*$$|RAY_POOL=$(C)|" "$(ENV)"; \
+__TAB__ENV="$(ENV)" RPC=$$(awk -F= '/^RPC=/{print $$2}' "$(ENV)") RAY_PROG=$$(awk -F= '/^RAY_PROG=/{print $$2}' "$(ENV)") RAY_POOL="$(C)" node dryrun-ray-ultra.cjs; \
+__TAB__$(MAKE) sanity
+
+mainnet-init:
+__TAB__set -e; \
+__TAB__mkdir -p "$$HOME/.flash-arb"; \
+__TAB__cp -f "$$HOME/.flash-arb/keys/mainnet-payer.json" ./phantom-owner.json || cp -f "$$HOME/.flash-arb/keys/devnet-payer.json" ./phantom-owner.json; \
+__TAB__OWNER=$$(solana-keygen pubkey ./phantom-owner.json); \
+__TAB__cat > "$$HOME/.flash-arb/mainnet.env" <<EOF
+RPC=https://api.mainnet-beta.solana.com
+PROGRAM=9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn
+GLOBAL=
+POOL=
+VAULT_AUTHORITY=
+VAULT=
+CALLER=$$OWNER
+TOKEN_PROGRAM=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+SYSVAR_RENT=SysvarRent111111111111111111111111111111111
+CLMM_PROG=CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK
+RAY_PROG=CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK
+CLMM_POOL=
+RAY_POOL=
+EOF
+__TAB__printf "OK: wrote $$HOME/.flash-arb/mainnet.env\n"
+
+use-candidate-mainnet:
+__TAB__set -e; \
+__TAB__test -n "$(C)"; \
+__TAB__perl -pi -e "s|^CLMM_POOL=.*$$|CLMM_POOL=$(C)|" "$$HOME/.flash-arb/mainnet.env"; \
+__TAB__perl -pi -e "s|^RAY_POOL=.*$$|RAY_POOL=$(C)|" "$$HOME/.flash-arb/mainnet.env"; \
+__TAB__ENV="$$HOME/.flash-arb/mainnet.env" RPC=$$(awk -F= '/^RPC=/{print $$2}' "$$HOME/.flash-arb/mainnet.env") RAY_PROG=$$(awk -F= '/^RAY_PROG=/{print $$2}' "$$HOME/.flash-arb/mainnet.env") RAY_POOL="$(C)" node dryrun-ray-ultra.cjs
+
+sanity-mainnet:
+__TAB__ENV="$$HOME/.flash-arb/mainnet.env" node scripts/route-sanity.cjs

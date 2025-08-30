@@ -61,11 +61,12 @@ function decode(tx){
 
 // Choose a Raydium ix that looks like a CLMM swap (must include pool+both vaults+oracle+obs)
 async function pickSwapTemplate(){
-  const required=[RAY_POOL,VAULT_A,VAULT_B,ORACLE,OBS].filter(Boolean).map(p=>p.toBase58());
-  const sigs=await cn.getSignaturesForAddress(RAY_POOL,{limit:150});
+  const required=[RAY_POOL,ORACLE,OBS].map(p=>p.toBase58());
+  const sigs=await cn.getSignaturesForAddress(RAY_POOL,{limit:80});
   for(const s of sigs){
     const tx=await cn.getTransaction(s.signature,{maxSupportedTransactionVersion:0});
-    if(!tx || tx.meta?.err) continue;
+await new Promise(r=>setTimeout(r,150));
+if(!tx || tx.meta?.err) continue;
     const {keys,instr}=decode(tx);
     const rayIndex = keys.findIndex(k=>k.equals(RAY_PROG));
     if(rayIndex<0) continue;

@@ -77,7 +77,7 @@ const baseNames = [
 const base = [];
 for (const [name, writable] of baseNames) {
   if (!ENV[name]) continue;
-  base.push({ pubkey: __toPk(ENV[name]), isSigner: false, isWritable: !!writable });
+  base.push({ pubkey: __toPk(ENV[name]), isSigner: (name==="CALLER"), isWritable: !!writable });
 }
 // always include a couple of known programs if not already present
 const ensurePk = (pk) => ({ pubkey: __toPk(pk), isSigner: false, isWritable: false });

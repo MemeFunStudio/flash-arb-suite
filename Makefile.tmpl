@@ -1,0 +1,45 @@
+ENV?=$(HOME)/.flash-arb/devnet.env
+
+.PHONY: daily-reset pin-ray-extras sanity check
+
+daily-reset:
+__TAB__set -e; \
+__TAB__cp -f "$$HOME/.flash-arb/keys/devnet-payer.json" ./phantom-owner.json; \
+__TAB__OWNER=$$(solana-keygen pubkey ./phantom-owner.json); \
+__TAB__mkdir -p "$$HOME/.flash-arb"; \
+__TAB__cat > "$(ENV)" <<EOF
+RPC=https://api.devnet.solana.com
+PROGRAM=9ckBy54vd9G6FmR63Z4PoLtNq8rbtoYzhVbJGx458Kmn
+GLOBAL=FjMwTsqGz5LZQSaGNWYkLZfFGWFNpFS42bZqeWQwq3Mk
+POOL=GruMMnPSwG1tkR5MiZfFEAscsbzD7g6e8271zW9ji5yA
+VAULT_AUTHORITY=7itZrzm5t2ZAL7hdZABrq5zBS6UrnL6qzvvJT2XHQANf
+VAULT=9uabzvq4s4D76zCrrVPjp7ZXFzsFr3H2NAJBPwL9VTAV
+CALLER=$$OWNER
+TOKEN_PROGRAM=TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA
+SYSVAR_RENT=SysvarRent111111111111111111111111111111111
+CLMM_PROG=DRayAUgENGQBKVaX8owNhgzkEDyoHTGVEGHVJT1E9pfH
+CLMM_POOL=EgCkhQM9zZVAk5Pvbn4ueNX6z5p18MpPQboZFzDvRk9w
+RAY_PROG=DRayAUgENGQBKVaX8owNhgzkEDyoHTGVEGHVJT1E9pfH
+RAY_POOL=EgCkhQM9zZVAk5Pvbn4ueNX6z5p18MpPQboZFzDvRk9w
+EOF
+__TAB__printf "OK: wrote $(ENV)\n"
+
+pin-ray-extras:
+__TAB__set -e; \
+__TAB__RPC=$$(awk -F= '/^RPC=/{print $$2}' "$(ENV)"); \
+__TAB__RAY_PROG=$$(awk -F= '/^RAY_PROG=/{print $$2}' "$(ENV)"); \
+__TAB__RAY_POOL=$$(awk -F= '/^RAY_POOL=/{print $$2}' "$(ENV)"); \
+__TAB__ENV="$(ENV)" RPC="$$RPC" RAY_PROG="$$RAY_PROG" RAY_POOL="$$RAY_POOL" node dryrun-ray-ultra.cjs
+
+sanity:
+__TAB__set -e; \
+__TAB__ENV="$(ENV)" node exec-route-provider.cjs
+
+check:
+__TAB__set -e; \
+__TAB__git rev-parse --short HEAD; \
+__TAB__test -f exec-route-provider.cjs && echo ok:exec-route-provider.cjs; \
+__TAB__test -f dryrun-ray-ultra.cjs && echo ok:dryrun-ray-ultra.cjs; \
+__TAB__test -f idl/flash_executor.json && echo ok:idl; \
+__TAB__test -f programs/flash_executor/src/lib.rs && echo ok:lib; \
+__TAB__grep -E '^(PROGRAM|GLOBAL|POOL|VAULT_AUTHORITY|VAULT|CALLER|CLMM_PROG|CLMM_POOL|RAY_PROG|RAY_POOL)=' "$(ENV)"
